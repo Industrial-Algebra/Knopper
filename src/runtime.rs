@@ -1,7 +1,9 @@
 use crate::{
     Effect, FocusState, Machine, RoutedEvent, RuntimeEvent, SceneBehavior,
+    diff::{PatchOp, diff_render_ops},
     layout::{LayoutNode, Rect, resolve_layout},
     render::{RenderOp, render_ops},
+    renderer::Renderer,
     route_event,
 };
 use cliffy_core::{Behavior, FromGeometric, IntoGeometric, behavior};
@@ -16,6 +18,7 @@ where
     scene: SceneBehavior<M::Msg>,
     focus: FocusState,
     ctx: M::Context,
+    last_render_ops: Vec<RenderOp>,
 }
 
 impl<M> Runtime<M>
@@ -39,6 +42,7 @@ where
             scene,
             focus: FocusState::new(),
             ctx,
+            last_render_ops: Vec::new(),
         }
     }
 
@@ -76,6 +80,20 @@ where
         render_ops(&self.layout(bounds))
     }
 
+    #[must_use]
+    pub fn diff(&self, bounds: Rect) -> Vec<PatchOp> {
+        let next = self.render_ops(bounds);
+        diff_render_ops(&self.last_render_ops, &next)
+    }
+
+    pub fn render<R: Renderer>(&mut self, renderer: &mut R, bounds: Rect) -> Result<(), R::Error> {
+        let next = self.render_ops(bounds);
+        let patches = diff_render_ops(&self.last_render_ops, &next);
+        renderer.apply(&patches)?;
+        self.last_render_ops = next;
+        Ok(())
+    }
+
     pub fn dispatch(&mut self, event: RuntimeEvent) {
         match route_event(&self.scene.sample(), &mut self.focus, event) {
             RoutedEvent::Message(msg) => self.apply_message(msg),
@@ -108,7 +126,8 @@ where
 mod tests {
     use super::*;
     use crate::{
-        NodeId, PureMachine, Role, RuntimeEvent, Scene, Style, layout::Rect, render::RenderOp,
+        MockRenderer, NodeId, PatchOp, PureMachine, Role, RuntimeEvent, Scene, Style, layout::Rect,
+        render::RenderOp,
     };
 
     #[derive(Debug, Clone, PartialEq, Eq)]
@@ -277,6 +296,81 @@ mod tests {
                     content: "ok".into(),
                     style: Style::PLAIN,
                 },
+            ]
+        );
+    }
+
+    #[test]
+    fn runtime_diff_reports_insertions_against_empty_render_state() {
+        let machine = PureMachine::new(
+            |_ctx: &TestContext| 0_i32,
+            |_model: &mut i32, _msg: Msg, _ctx: &TestContext| Effect::None,
+            |_model: &i32, _shared: &(), _ctx: &TestContext| Scene::text(2_u64, "hello"),
+        );
+
+        let runtime = Runtime::new(machine, TestContext { title: "knopper" }, ());
+        assert_eq!(
+            runtime.diff(Rect::new(0, 0, 10, 1)),
+            vec![PatchOp::Insert(RenderOp::DrawText {
+                id: NodeId::new(2),
+                rect: Rect::new(0, 0, 5, 1),
+                content: "hello".into(),
+                style: Style::PLAIN,
+            })]
+        );
+    }
+
+    #[test]
+    fn runtime_render_updates_mock_renderer_and_tracks_previous_frame() {
+        let machine = PureMachine::new(
+            |_ctx: &TestContext| 0_i32,
+            |model: &mut i32, msg: Msg, _ctx: &TestContext| {
+                if let Msg::Increment = msg {
+                    *model += 1;
+                }
+                Effect::None
+            },
+            |model: &i32, _shared: &(), _ctx: &TestContext| {
+                Scene::text(2_u64, format!("count:{model}")).on_activate(Msg::Increment)
+            },
+        );
+
+        let mut runtime = Runtime::new(machine, TestContext { title: "knopper" }, ());
+        let mut renderer = MockRenderer::default();
+
+        runtime
+            .render(&mut renderer, Rect::new(0, 0, 20, 1))
+            .expect("mock renderer should not fail");
+        assert_eq!(
+            renderer.applied(),
+            &[PatchOp::Insert(RenderOp::DrawText {
+                id: NodeId::new(2),
+                rect: Rect::new(0, 0, 7, 1),
+                content: "count:0".into(),
+                style: Style::PLAIN,
+            })]
+        );
+
+        runtime.dispatch(RuntimeEvent::Activate(NodeId::new(2)));
+        runtime
+            .render(&mut renderer, Rect::new(0, 0, 20, 1))
+            .expect("mock renderer should not fail");
+
+        assert_eq!(
+            renderer.applied(),
+            &[
+                PatchOp::Insert(RenderOp::DrawText {
+                    id: NodeId::new(2),
+                    rect: Rect::new(0, 0, 7, 1),
+                    content: "count:0".into(),
+                    style: Style::PLAIN,
+                }),
+                PatchOp::Update(RenderOp::DrawText {
+                    id: NodeId::new(2),
+                    rect: Rect::new(0, 0, 7, 1),
+                    content: "count:1".into(),
+                    style: Style::PLAIN,
+                }),
             ]
         );
     }
