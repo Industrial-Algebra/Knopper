@@ -1,4 +1,4 @@
-use crate::id::NodeId;
+use crate::{annotation::Annotation, id::NodeId, style::Style};
 use cliffy_core::{FromGeometric, GA3, IntoGeometric};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -20,9 +20,30 @@ pub enum Interaction<Msg> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TextNode<Msg> {
+pub struct NodeMeta {
     pub id: NodeId,
     pub role: Role,
+    pub style: Style,
+    pub annotations: Vec<Annotation>,
+    pub focusable: bool,
+}
+
+impl NodeMeta {
+    #[must_use]
+    pub fn new(id: impl Into<NodeId>) -> Self {
+        Self {
+            id: id.into(),
+            role: Role::Generic,
+            style: Style::PLAIN,
+            annotations: Vec::new(),
+            focusable: false,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TextNode<Msg> {
+    pub meta: NodeMeta,
     pub content: String,
     pub interaction: Interaction<Msg>,
 }
@@ -32,18 +53,15 @@ pub enum Scene<Msg> {
     Empty,
     Text(TextNode<Msg>),
     Row {
-        id: NodeId,
-        role: Role,
+        meta: NodeMeta,
         children: Vec<Scene<Msg>>,
     },
     Column {
-        id: NodeId,
-        role: Role,
+        meta: NodeMeta,
         children: Vec<Scene<Msg>>,
     },
     Annotated {
-        id: NodeId,
-        role: Role,
+        meta: NodeMeta,
         label: String,
         child: Box<Scene<Msg>>,
     },
@@ -53,8 +71,7 @@ impl<Msg> Scene<Msg> {
     #[must_use]
     pub fn text(id: impl Into<NodeId>, content: impl Into<String>) -> Self {
         Self::Text(TextNode {
-            id: id.into(),
-            role: Role::Generic,
+            meta: NodeMeta::new(id),
             content: content.into(),
             interaction: Interaction::None,
         })
@@ -63,8 +80,7 @@ impl<Msg> Scene<Msg> {
     #[must_use]
     pub fn row(id: impl Into<NodeId>, children: impl Into<Vec<Scene<Msg>>>) -> Self {
         Self::Row {
-            id: id.into(),
-            role: Role::Generic,
+            meta: NodeMeta::new(id),
             children: children.into(),
         }
     }
@@ -72,8 +88,7 @@ impl<Msg> Scene<Msg> {
     #[must_use]
     pub fn column(id: impl Into<NodeId>, children: impl Into<Vec<Scene<Msg>>>) -> Self {
         Self::Column {
-            id: id.into(),
-            role: Role::Generic,
+            meta: NodeMeta::new(id),
             children: children.into(),
         }
     }
@@ -81,8 +96,7 @@ impl<Msg> Scene<Msg> {
     #[must_use]
     pub fn annotated(id: impl Into<NodeId>, label: impl Into<String>, child: Scene<Msg>) -> Self {
         Self::Annotated {
-            id: id.into(),
-            role: Role::Generic,
+            meta: NodeMeta::new(id),
             label: label.into(),
             child: Box::new(child),
         }
@@ -90,13 +104,26 @@ impl<Msg> Scene<Msg> {
 
     #[must_use]
     pub fn with_role(mut self, role: Role) -> Self {
-        match &mut self {
-            Self::Empty => {}
-            Self::Text(node) => node.role = role,
-            Self::Row { role: current, .. }
-            | Self::Column { role: current, .. }
-            | Self::Annotated { role: current, .. } => *current = role,
-        }
+        self.meta_mut().role = role;
+        self
+    }
+
+    #[must_use]
+    pub fn with_style(mut self, style: Style) -> Self {
+        let meta = self.meta_mut();
+        meta.style = meta.style.combine(style);
+        self
+    }
+
+    #[must_use]
+    pub fn with_annotation(mut self, annotation: Annotation) -> Self {
+        self.meta_mut().annotations.push(annotation);
+        self
+    }
+
+    #[must_use]
+    pub fn focusable(mut self) -> Self {
+        self.meta_mut().focusable = true;
         self
     }
 
@@ -104,8 +131,30 @@ impl<Msg> Scene<Msg> {
     pub fn on_activate(mut self, msg: Msg) -> Self {
         if let Self::Text(node) = &mut self {
             node.interaction = Interaction::Activate(msg);
+            node.meta.focusable = true;
         }
         self
+    }
+
+    #[must_use]
+    pub fn meta(&self) -> Option<&NodeMeta> {
+        match self {
+            Self::Empty => None,
+            Self::Text(node) => Some(&node.meta),
+            Self::Row { meta, .. } | Self::Column { meta, .. } | Self::Annotated { meta, .. } => {
+                Some(meta)
+            }
+        }
+    }
+
+    fn meta_mut(&mut self) -> &mut NodeMeta {
+        match self {
+            Self::Empty => panic!("empty scene has no metadata"),
+            Self::Text(node) => &mut node.meta,
+            Self::Row { meta, .. } | Self::Column { meta, .. } | Self::Annotated { meta, .. } => {
+                meta
+            }
+        }
     }
 
     #[must_use]
@@ -113,32 +162,23 @@ impl<Msg> Scene<Msg> {
         match self {
             Self::Empty => Scene::Empty,
             Self::Text(node) => Scene::Text(TextNode {
-                id: node.id,
-                role: node.role,
+                meta: node.meta,
                 content: node.content,
                 interaction: match node.interaction {
                     Interaction::None => Interaction::None,
                     Interaction::Activate(msg) => Interaction::Activate(f(msg)),
                 },
             }),
-            Self::Row { id, role, children } => Scene::Row {
-                id,
-                role,
+            Self::Row { meta, children } => Scene::Row {
+                meta,
                 children: children.into_iter().map(|child| child.map_msg(f)).collect(),
             },
-            Self::Column { id, role, children } => Scene::Column {
-                id,
-                role,
+            Self::Column { meta, children } => Scene::Column {
+                meta,
                 children: children.into_iter().map(|child| child.map_msg(f)).collect(),
             },
-            Self::Annotated {
-                id,
-                role,
-                label,
-                child,
-            } => Scene::Annotated {
-                id,
-                role,
+            Self::Annotated { meta, label, child } => Scene::Annotated {
+                meta,
                 label,
                 child: Box::new(child.map_msg(f)),
             },
@@ -161,6 +201,7 @@ impl<Msg> FromGeometric for Scene<Msg> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::style::Color;
 
     #[test]
     fn maps_messages_across_scene_tree() {
@@ -195,5 +236,21 @@ mod tests {
         );
 
         assert_eq!(mapped, expected);
+    }
+
+    #[test]
+    fn scene_metadata_accumulates_style_and_annotations() {
+        let scene = Scene::<()>::text(10_u64, "hello")
+            .with_role(Role::Header)
+            .with_style(Style::PLAIN.fg(Color::Ansi(3)).bold())
+            .with_annotation(Annotation::Label("title".into()))
+            .focusable();
+
+        let meta = scene.meta().expect("text nodes have metadata");
+        assert_eq!(meta.role, Role::Header);
+        assert_eq!(meta.style.fg, Some(Color::Ansi(3)));
+        assert!(meta.style.emphasis.bold);
+        assert_eq!(meta.annotations, vec![Annotation::Label("title".into())]);
+        assert!(meta.focusable);
     }
 }
