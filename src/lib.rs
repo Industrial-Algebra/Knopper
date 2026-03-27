@@ -4,6 +4,8 @@ pub mod focus;
 pub mod id;
 pub mod input;
 pub mod machine;
+pub mod routing;
+pub mod runtime;
 pub mod scene;
 pub mod style;
 
@@ -13,5 +15,7 @@ pub use focus::{FocusPath, FocusState};
 pub use id::NodeId;
 pub use input::{Key, KeyEvent, ResizeEvent, RuntimeEvent};
 pub use machine::{Machine, PureMachine, SceneBehavior};
+pub use routing::{RoutedEvent, activation_message, focus_path, route_event};
+pub use runtime::Runtime;
 pub use scene::{Interaction, NodeMeta, Role, Scene, TextNode};
 pub use style::{Color, Emphasis, Style};

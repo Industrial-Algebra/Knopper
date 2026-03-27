@@ -16,6 +16,11 @@ impl FocusPath {
     }
 
     #[must_use]
+    pub fn from_vec(path: Vec<NodeId>) -> Self {
+        Self(path)
+    }
+
+    #[must_use]
     pub fn current(&self) -> Option<NodeId> {
         self.0.last().copied()
     }
