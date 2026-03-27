@@ -33,7 +33,10 @@ pub fn diff_render_ops(previous: &[RenderOp], next: &[RenderOp]) -> Vec<PatchOp>
 
 fn op_id(op: &RenderOp) -> NodeId {
     match op {
-        RenderOp::DrawText { id, .. } | RenderOp::Annotate { id, .. } => *id,
+        RenderOp::DrawText { id, .. }
+        | RenderOp::DrawBorder { id, .. }
+        | RenderOp::Annotate { id, .. }
+        | RenderOp::SetCursor { id, .. } => *id,
     }
 }
 

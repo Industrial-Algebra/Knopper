@@ -65,7 +65,10 @@ pub fn activation_message<Msg: Clone>(scene: &Scene<Msg>, target: NodeId) -> Opt
                     .find_map(|child| activation_message(child, target))
             }
         }
-        Scene::Annotated { meta, child, .. } => {
+        Scene::Padding { meta, child, .. }
+        | Scene::Viewport { meta, child }
+        | Scene::Border { meta, child }
+        | Scene::Annotated { meta, child, .. } => {
             if meta.id == target {
                 None
             } else {
@@ -104,7 +107,10 @@ fn collect_path<Msg>(
             }
             found
         }
-        Scene::Annotated { meta, child, .. } => {
+        Scene::Padding { meta, child, .. }
+        | Scene::Viewport { meta, child }
+        | Scene::Border { meta, child }
+        | Scene::Annotated { meta, child, .. } => {
             stack.push(meta.id);
             if meta.id == target {
                 return Some(stack.clone());

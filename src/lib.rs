@@ -17,7 +17,9 @@ pub mod style;
 pub use annotation::Annotation;
 #[cfg(feature = "notcurses")]
 pub use backend::notcurses::NotcursesBackend;
-pub use backend::{BackendCommand, MockBackend, TerminalBackend, backend_commands};
+pub use backend::{
+    BackendCommand, BackendEntry, BackendState, MockBackend, TerminalBackend, backend_commands,
+};
 pub use diff::{PatchOp, diff_render_ops};
 pub use effect::Effect;
 pub use focus::{FocusPath, FocusState};
@@ -29,5 +31,5 @@ pub use render::{RenderOp, render_ops};
 pub use renderer::{MockRenderer, Renderer, render_once};
 pub use routing::{RoutedEvent, activation_message, focus_path, route_event};
 pub use runtime::Runtime;
-pub use scene::{Interaction, NodeMeta, Role, Scene, TextNode};
+pub use scene::{Interaction, NodeMeta, Padding, Role, Scene, TextNode};
 pub use style::{Color, Emphasis, Style};

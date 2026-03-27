@@ -1,6 +1,6 @@
 use crate::{
-    Effect, FocusState, Machine, RoutedEvent, RuntimeEvent, SceneBehavior,
-    backend::{TerminalBackend, backend_commands},
+    Effect, FocusState, Machine, NodeId, RoutedEvent, RuntimeEvent, SceneBehavior,
+    backend::{BackendCommand, TerminalBackend, backend_commands},
     diff::{PatchOp, diff_render_ops},
     layout::{LayoutNode, Rect, resolve_layout},
     render::{RenderOp, render_ops},
@@ -108,6 +108,24 @@ where
         Ok(())
     }
 
+    pub fn render_to_backend_with_cursor<B: TerminalBackend>(
+        &mut self,
+        backend: &mut B,
+        bounds: Rect,
+        cursor: Option<(u16, u16)>,
+    ) -> Result<(), B::Error> {
+        let next = self.render_ops(bounds);
+        let patches = diff_render_ops(&self.last_render_ops, &next);
+        let mut commands = backend_commands(&self.last_render_ops, &patches);
+        commands.push(BackendCommand::SetCursor {
+            id: NodeId::new(u64::MAX),
+            position: cursor,
+        });
+        backend.execute(&commands)?;
+        self.last_render_ops = next;
+        Ok(())
+    }
+
     pub fn dispatch(&mut self, event: RuntimeEvent) {
         match route_event(&self.scene.sample(), &mut self.focus, event) {
             RoutedEvent::Message(msg) => self.apply_message(msg),
@@ -140,7 +158,7 @@ where
 mod tests {
     use super::*;
     use crate::{
-        MockRenderer, NodeId, PatchOp, PureMachine, Role, RuntimeEvent, Scene, Style,
+        BackendEntry, MockRenderer, NodeId, PatchOp, PureMachine, Role, RuntimeEvent, Scene, Style,
         backend::{BackendCommand, MockBackend},
         layout::Rect,
         render::RenderOp,
@@ -281,7 +299,11 @@ mod tests {
                     1_u64,
                     vec![
                         Scene::text(2_u64, shared.clone()),
-                        Scene::annotated(3_u64, "meta", Scene::text(4_u64, "ok")),
+                        Scene::annotated(
+                            3_u64,
+                            "meta",
+                            Scene::border(4_u64, Scene::text(5_u64, "ok")),
+                        ),
                     ],
                 )
             },
@@ -303,12 +325,17 @@ mod tests {
                 },
                 RenderOp::Annotate {
                     id: NodeId::new(3),
-                    rect: Rect::new(3, 0, 2, 2),
+                    rect: Rect::new(3, 0, 4, 3),
                     label: "meta".into(),
                 },
-                RenderOp::DrawText {
+                RenderOp::DrawBorder {
                     id: NodeId::new(4),
-                    rect: Rect::new(3, 0, 2, 1),
+                    rect: Rect::new(3, 0, 4, 3),
+                    style: Style::PLAIN,
+                },
+                RenderOp::DrawText {
+                    id: NodeId::new(5),
+                    rect: Rect::new(4, 1, 2, 1),
                     content: "ok".into(),
                     style: Style::PLAIN,
                 },
@@ -396,7 +423,9 @@ mod tests {
         let machine = PureMachine::new(
             |_ctx: &TestContext| 0_i32,
             |_model: &mut i32, _msg: Msg, _ctx: &TestContext| Effect::None,
-            |_model: &i32, _shared: &(), _ctx: &TestContext| Scene::text(2_u64, "hello"),
+            |_model: &i32, _shared: &(), _ctx: &TestContext| {
+                Scene::border(1_u64, Scene::text(2_u64, "hello"))
+            },
         );
 
         let mut runtime = Runtime::new(machine, TestContext { title: "knopper" }, ());
@@ -408,12 +437,19 @@ mod tests {
 
         assert_eq!(
             backend.executed(),
-            &[BackendCommand::DrawText {
-                id: NodeId::new(2),
-                rect: Rect::new(0, 0, 5, 1),
-                content: "hello".into(),
-                style: Style::PLAIN,
-            }]
+            &[
+                BackendCommand::DrawBorder {
+                    id: NodeId::new(1),
+                    rect: Rect::new(0, 0, 10, 1),
+                    style: Style::PLAIN,
+                },
+                BackendCommand::DrawText {
+                    id: NodeId::new(2),
+                    rect: Rect::new(1, 1, 5, 1),
+                    content: "hello".into(),
+                    style: Style::PLAIN,
+                },
+            ]
         );
     }
 
@@ -462,6 +498,38 @@ mod tests {
                     style: Style::PLAIN,
                 },
             ]
+        );
+        assert_eq!(
+            backend.state().get(NodeId::new(2)),
+            Some(&BackendEntry::Text {
+                rect: Rect::new(0, 0, 7, 1),
+                content: "count:1".into(),
+                style: Style::PLAIN,
+            })
+        );
+    }
+
+    #[test]
+    fn runtime_can_send_cursor_commands_to_backend() {
+        let machine = PureMachine::new(
+            |_ctx: &TestContext| 0_i32,
+            |_model: &mut i32, _msg: Msg, _ctx: &TestContext| Effect::None,
+            |_model: &i32, _shared: &(), _ctx: &TestContext| Scene::text(2_u64, "hello"),
+        );
+
+        let mut runtime = Runtime::new(machine, TestContext { title: "knopper" }, ());
+        let mut backend = MockBackend::default();
+        runtime
+            .render_to_backend_with_cursor(&mut backend, Rect::new(0, 0, 10, 1), Some((4, 0)))
+            .expect("mock backend should not fail");
+
+        assert_eq!(backend.state().cursor(), Some((4, 0)));
+        assert_eq!(
+            backend.executed().last(),
+            Some(&BackendCommand::SetCursor {
+                id: NodeId::new(u64::MAX),
+                position: Some((4, 0)),
+            })
         );
     }
 }

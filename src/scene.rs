@@ -41,6 +41,26 @@ impl NodeMeta {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Padding {
+    pub top: u16,
+    pub right: u16,
+    pub bottom: u16,
+    pub left: u16,
+}
+
+impl Padding {
+    #[must_use]
+    pub const fn all(amount: u16) -> Self {
+        Self {
+            top: amount,
+            right: amount,
+            bottom: amount,
+            left: amount,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TextNode<Msg> {
     pub meta: NodeMeta,
@@ -59,6 +79,19 @@ pub enum Scene<Msg> {
     Column {
         meta: NodeMeta,
         children: Vec<Scene<Msg>>,
+    },
+    Padding {
+        meta: NodeMeta,
+        padding: Padding,
+        child: Box<Scene<Msg>>,
+    },
+    Viewport {
+        meta: NodeMeta,
+        child: Box<Scene<Msg>>,
+    },
+    Border {
+        meta: NodeMeta,
+        child: Box<Scene<Msg>>,
     },
     Annotated {
         meta: NodeMeta,
@@ -90,6 +123,31 @@ impl<Msg> Scene<Msg> {
         Self::Column {
             meta: NodeMeta::new(id),
             children: children.into(),
+        }
+    }
+
+    #[must_use]
+    pub fn padding(id: impl Into<NodeId>, padding: Padding, child: Scene<Msg>) -> Self {
+        Self::Padding {
+            meta: NodeMeta::new(id),
+            padding,
+            child: Box::new(child),
+        }
+    }
+
+    #[must_use]
+    pub fn viewport(id: impl Into<NodeId>, child: Scene<Msg>) -> Self {
+        Self::Viewport {
+            meta: NodeMeta::new(id),
+            child: Box::new(child),
+        }
+    }
+
+    #[must_use]
+    pub fn border(id: impl Into<NodeId>, child: Scene<Msg>) -> Self {
+        Self::Border {
+            meta: NodeMeta::new(id),
+            child: Box::new(child),
         }
     }
 
@@ -141,9 +199,12 @@ impl<Msg> Scene<Msg> {
         match self {
             Self::Empty => None,
             Self::Text(node) => Some(&node.meta),
-            Self::Row { meta, .. } | Self::Column { meta, .. } | Self::Annotated { meta, .. } => {
-                Some(meta)
-            }
+            Self::Row { meta, .. }
+            | Self::Column { meta, .. }
+            | Self::Padding { meta, .. }
+            | Self::Viewport { meta, .. }
+            | Self::Border { meta, .. }
+            | Self::Annotated { meta, .. } => Some(meta),
         }
     }
 
@@ -151,9 +212,12 @@ impl<Msg> Scene<Msg> {
         match self {
             Self::Empty => panic!("empty scene has no metadata"),
             Self::Text(node) => &mut node.meta,
-            Self::Row { meta, .. } | Self::Column { meta, .. } | Self::Annotated { meta, .. } => {
-                meta
-            }
+            Self::Row { meta, .. }
+            | Self::Column { meta, .. }
+            | Self::Padding { meta, .. }
+            | Self::Viewport { meta, .. }
+            | Self::Border { meta, .. }
+            | Self::Annotated { meta, .. } => meta,
         }
     }
 
@@ -176,6 +240,23 @@ impl<Msg> Scene<Msg> {
             Self::Column { meta, children } => Scene::Column {
                 meta,
                 children: children.into_iter().map(|child| child.map_msg(f)).collect(),
+            },
+            Self::Padding {
+                meta,
+                padding,
+                child,
+            } => Scene::Padding {
+                meta,
+                padding,
+                child: Box::new(child.map_msg(f)),
+            },
+            Self::Viewport { meta, child } => Scene::Viewport {
+                meta,
+                child: Box::new(child.map_msg(f)),
+            },
+            Self::Border { meta, child } => Scene::Border {
+                meta,
+                child: Box::new(child.map_msg(f)),
             },
             Self::Annotated { meta, label, child } => Scene::Annotated {
                 meta,
