@@ -1,5 +1,6 @@
 use crate::{
     Effect, FocusState, Machine, RoutedEvent, RuntimeEvent, SceneBehavior,
+    backend::{TerminalBackend, backend_commands},
     diff::{PatchOp, diff_render_ops},
     layout::{LayoutNode, Rect, resolve_layout},
     render::{RenderOp, render_ops},
@@ -94,6 +95,19 @@ where
         Ok(())
     }
 
+    pub fn render_to_backend<B: TerminalBackend>(
+        &mut self,
+        backend: &mut B,
+        bounds: Rect,
+    ) -> Result<(), B::Error> {
+        let next = self.render_ops(bounds);
+        let patches = diff_render_ops(&self.last_render_ops, &next);
+        let commands = backend_commands(&patches);
+        backend.execute(&commands)?;
+        self.last_render_ops = next;
+        Ok(())
+    }
+
     pub fn dispatch(&mut self, event: RuntimeEvent) {
         match route_event(&self.scene.sample(), &mut self.focus, event) {
             RoutedEvent::Message(msg) => self.apply_message(msg),
@@ -126,7 +140,9 @@ where
 mod tests {
     use super::*;
     use crate::{
-        MockRenderer, NodeId, PatchOp, PureMachine, Role, RuntimeEvent, Scene, Style, layout::Rect,
+        MockRenderer, NodeId, PatchOp, PureMachine, Role, RuntimeEvent, Scene, Style,
+        backend::{BackendCommand, MockBackend},
+        layout::Rect,
         render::RenderOp,
     };
 
@@ -372,6 +388,32 @@ mod tests {
                     style: Style::PLAIN,
                 }),
             ]
+        );
+    }
+
+    #[test]
+    fn runtime_can_translate_patches_into_backend_commands() {
+        let machine = PureMachine::new(
+            |_ctx: &TestContext| 0_i32,
+            |_model: &mut i32, _msg: Msg, _ctx: &TestContext| Effect::None,
+            |_model: &i32, _shared: &(), _ctx: &TestContext| Scene::text(2_u64, "hello"),
+        );
+
+        let mut runtime = Runtime::new(machine, TestContext { title: "knopper" }, ());
+        let mut backend = MockBackend::default();
+
+        runtime
+            .render_to_backend(&mut backend, Rect::new(0, 0, 10, 1))
+            .expect("mock backend should not fail");
+
+        assert_eq!(
+            backend.executed(),
+            &[BackendCommand::DrawText {
+                id: NodeId::new(2),
+                rect: Rect::new(0, 0, 5, 1),
+                content: "hello".into(),
+                style: Style::PLAIN,
+            }]
         );
     }
 }

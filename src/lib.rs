@@ -1,4 +1,5 @@
 pub mod annotation;
+pub mod backend;
 pub mod diff;
 pub mod effect;
 pub mod focus;
@@ -14,6 +15,9 @@ pub mod scene;
 pub mod style;
 
 pub use annotation::Annotation;
+#[cfg(feature = "notcurses")]
+pub use backend::notcurses::NotcursesBackend;
+pub use backend::{BackendCommand, MockBackend, TerminalBackend, backend_commands};
 pub use diff::{PatchOp, diff_render_ops};
 pub use effect::Effect;
 pub use focus::{FocusPath, FocusState};
