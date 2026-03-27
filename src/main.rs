@@ -1,3 +1,3 @@
 fn main() {
-    println!("Hello, world!");
+    println!("Knopper: see docs/architecture for the current framework design drafts.");
 }
