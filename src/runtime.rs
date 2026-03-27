@@ -1,4 +1,9 @@
-use crate::{Effect, FocusState, Machine, RoutedEvent, RuntimeEvent, SceneBehavior, route_event};
+use crate::{
+    Effect, FocusState, Machine, RoutedEvent, RuntimeEvent, SceneBehavior,
+    layout::{LayoutNode, Rect, resolve_layout},
+    render::{RenderOp, render_ops},
+    route_event,
+};
 use cliffy_core::{Behavior, FromGeometric, IntoGeometric, behavior};
 
 pub struct Runtime<M>
@@ -61,6 +66,16 @@ where
         self.shared.set(shared);
     }
 
+    #[must_use]
+    pub fn layout(&self, bounds: Rect) -> LayoutNode {
+        resolve_layout(&self.scene.sample(), bounds)
+    }
+
+    #[must_use]
+    pub fn render_ops(&self, bounds: Rect) -> Vec<RenderOp> {
+        render_ops(&self.layout(bounds))
+    }
+
     pub fn dispatch(&mut self, event: RuntimeEvent) {
         match route_event(&self.scene.sample(), &mut self.focus, event) {
             RoutedEvent::Message(msg) => self.apply_message(msg),
@@ -92,7 +107,9 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{NodeId, PureMachine, Role, RuntimeEvent, Scene};
+    use crate::{
+        NodeId, PureMachine, Role, RuntimeEvent, Scene, Style, layout::Rect, render::RenderOp,
+    };
 
     #[derive(Debug, Clone, PartialEq, Eq)]
     struct TestContext {
@@ -217,5 +234,50 @@ mod tests {
 
         runtime.set_shared("b".to_string());
         assert_eq!(runtime.scene().sample(), Scene::text(1_u64, "b:0"));
+    }
+
+    #[test]
+    fn runtime_can_produce_layout_and_render_ops() {
+        let machine = PureMachine::new(
+            |_ctx: &TestContext| 0_i32,
+            |_model: &mut i32, _msg: Msg, _ctx: &TestContext| Effect::None,
+            |_model: &i32, shared: &String, _ctx: &TestContext| {
+                Scene::row(
+                    1_u64,
+                    vec![
+                        Scene::text(2_u64, shared.clone()),
+                        Scene::annotated(3_u64, "meta", Scene::text(4_u64, "ok")),
+                    ],
+                )
+            },
+        );
+
+        let runtime = Runtime::new(machine, TestContext { title: "knopper" }, "abc".to_string());
+        let layout = runtime.layout(Rect::new(0, 0, 20, 2));
+        let ops = runtime.render_ops(Rect::new(0, 0, 20, 2));
+
+        assert_eq!(layout.id, NodeId::new(1));
+        assert_eq!(
+            ops,
+            vec![
+                RenderOp::DrawText {
+                    id: NodeId::new(2),
+                    rect: Rect::new(0, 0, 3, 1),
+                    content: "abc".into(),
+                    style: Style::PLAIN,
+                },
+                RenderOp::Annotate {
+                    id: NodeId::new(3),
+                    rect: Rect::new(3, 0, 2, 2),
+                    label: "meta".into(),
+                },
+                RenderOp::DrawText {
+                    id: NodeId::new(4),
+                    rect: Rect::new(3, 0, 2, 1),
+                    content: "ok".into(),
+                    style: Style::PLAIN,
+                },
+            ]
+        );
     }
 }
