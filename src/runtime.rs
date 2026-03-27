@@ -102,7 +102,7 @@ where
     ) -> Result<(), B::Error> {
         let next = self.render_ops(bounds);
         let patches = diff_render_ops(&self.last_render_ops, &next);
-        let commands = backend_commands(&patches);
+        let commands = backend_commands(&self.last_render_ops, &patches);
         backend.execute(&commands)?;
         self.last_render_ops = next;
         Ok(())
@@ -414,6 +414,54 @@ mod tests {
                 content: "hello".into(),
                 style: Style::PLAIN,
             }]
+        );
+    }
+
+    #[test]
+    fn runtime_backend_render_clears_previous_region_before_update() {
+        let machine = PureMachine::new(
+            |_ctx: &TestContext| 0_i32,
+            |model: &mut i32, msg: Msg, _ctx: &TestContext| {
+                if let Msg::Increment = msg {
+                    *model += 1;
+                }
+                Effect::None
+            },
+            |model: &i32, _shared: &(), _ctx: &TestContext| {
+                Scene::text(2_u64, format!("count:{model}")).on_activate(Msg::Increment)
+            },
+        );
+
+        let mut runtime = Runtime::new(machine, TestContext { title: "knopper" }, ());
+        let mut backend = MockBackend::default();
+
+        runtime
+            .render_to_backend(&mut backend, Rect::new(0, 0, 20, 1))
+            .expect("mock backend should not fail");
+        runtime.dispatch(RuntimeEvent::Activate(NodeId::new(2)));
+        runtime
+            .render_to_backend(&mut backend, Rect::new(0, 0, 20, 1))
+            .expect("mock backend should not fail");
+
+        assert_eq!(
+            backend.executed(),
+            &[
+                BackendCommand::DrawText {
+                    id: NodeId::new(2),
+                    rect: Rect::new(0, 0, 7, 1),
+                    content: "count:0".into(),
+                    style: Style::PLAIN,
+                },
+                BackendCommand::ClearRect {
+                    rect: Rect::new(0, 0, 7, 1),
+                },
+                BackendCommand::DrawText {
+                    id: NodeId::new(2),
+                    rect: Rect::new(0, 0, 7, 1),
+                    content: "count:1".into(),
+                    style: Style::PLAIN,
+                },
+            ]
         );
     }
 }
