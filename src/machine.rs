@@ -25,6 +25,21 @@ pub trait Machine {
         shared: Behavior<Self::Shared>,
         ctx: &Self::Context,
     ) -> SceneBehavior<Self::Msg>;
+
+    fn project_once(
+        &self,
+        model: &Self::Model,
+        shared: &Self::Shared,
+        ctx: &Self::Context,
+    ) -> Scene<Self::Msg>
+    where
+        Self::Msg: Clone + 'static,
+        Self::Model: Clone + IntoGeometric + FromGeometric + 'static,
+        Self::Shared: Clone + IntoGeometric + FromGeometric + 'static,
+    {
+        self.project(behavior(model.clone()), behavior(shared.clone()), ctx)
+            .sample()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

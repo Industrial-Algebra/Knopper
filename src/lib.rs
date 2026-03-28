@@ -1,5 +1,6 @@
 pub mod annotation;
 pub mod backend;
+pub mod compose;
 pub mod diff;
 pub mod effect;
 pub mod focus;
@@ -21,6 +22,7 @@ pub use backend::notcurses::NotcursesBackend;
 pub use backend::{
     BackendCommand, BackendEntry, BackendState, MockBackend, TerminalBackend, backend_commands,
 };
+pub use compose::{child_has_focus, dispatch_if_focused, map_effect, project_child, update_child};
 pub use diff::{PatchOp, diff_render_ops};
 pub use effect::Effect;
 pub use focus::{FocusPath, FocusState};
@@ -36,4 +38,7 @@ pub use scene::{
     Interaction, NodeMeta, Padding, Role, Scene, ScrollOffset, SizeConstraint, TextNode,
 };
 pub use standard::list::{ListContext, ListIds, ListMachine, ListMsg, ListState, list_key_msg};
+pub use standard::list_detail::{
+    ListDetailContext, ListDetailMachine, ListDetailMsg, ListDetailState,
+};
 pub use style::{Color, Emphasis, Style};

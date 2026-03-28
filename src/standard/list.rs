@@ -102,6 +102,11 @@ impl<Item, RowMsg, RenderRow> ListMachine<Item, RowMsg, RenderRow> {
     }
 
     #[must_use]
+    pub fn root_id(&self) -> NodeId {
+        self.ids.root
+    }
+
+    #[must_use]
     pub fn item_id(&self, index: usize) -> NodeId {
         offset_id(self.ids.item_base, index)
     }
@@ -155,6 +160,21 @@ where
 
         model.scroll = scroll_for(model.selected, model.scroll, ctx.viewport_height);
         Effect::RequestFocus(self.marker_id(model.selected))
+    }
+
+    fn project_once(
+        &self,
+        model: &Self::Model,
+        _shared: &Self::Shared,
+        ctx: &Self::Context,
+    ) -> Scene<Self::Msg> {
+        build_scene(
+            &self.ids,
+            &self.render_row,
+            &ctx.items,
+            model,
+            ctx.viewport_height,
+        )
     }
 
     fn project(
