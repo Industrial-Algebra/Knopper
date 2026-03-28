@@ -61,6 +61,48 @@ impl Padding {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct SizeConstraint {
+    pub width: Option<u16>,
+    pub height: Option<u16>,
+}
+
+impl SizeConstraint {
+    #[must_use]
+    pub const fn new(width: Option<u16>, height: Option<u16>) -> Self {
+        Self { width, height }
+    }
+
+    #[must_use]
+    pub const fn width(width: u16) -> Self {
+        Self {
+            width: Some(width),
+            height: None,
+        }
+    }
+
+    #[must_use]
+    pub const fn height(height: u16) -> Self {
+        Self {
+            width: None,
+            height: Some(height),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct ScrollOffset {
+    pub x: u16,
+    pub y: u16,
+}
+
+impl ScrollOffset {
+    #[must_use]
+    pub const fn new(x: u16, y: u16) -> Self {
+        Self { x, y }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TextNode<Msg> {
     pub meta: NodeMeta,
@@ -80,13 +122,27 @@ pub enum Scene<Msg> {
         meta: NodeMeta,
         children: Vec<Scene<Msg>>,
     },
+    Stack {
+        meta: NodeMeta,
+        children: Vec<Scene<Msg>>,
+    },
     Padding {
         meta: NodeMeta,
         padding: Padding,
         child: Box<Scene<Msg>>,
     },
+    Sized {
+        meta: NodeMeta,
+        constraint: SizeConstraint,
+        child: Box<Scene<Msg>>,
+    },
     Viewport {
         meta: NodeMeta,
+        child: Box<Scene<Msg>>,
+    },
+    Scroll {
+        meta: NodeMeta,
+        offset: ScrollOffset,
         child: Box<Scene<Msg>>,
     },
     Border {
@@ -127,6 +183,19 @@ impl<Msg> Scene<Msg> {
     }
 
     #[must_use]
+    pub fn stack(id: impl Into<NodeId>, children: impl Into<Vec<Scene<Msg>>>) -> Self {
+        Self::Stack {
+            meta: NodeMeta::new(id),
+            children: children.into(),
+        }
+    }
+
+    #[must_use]
+    pub fn overlay(id: impl Into<NodeId>, children: impl Into<Vec<Scene<Msg>>>) -> Self {
+        Self::stack(id, children)
+    }
+
+    #[must_use]
     pub fn padding(id: impl Into<NodeId>, padding: Padding, child: Scene<Msg>) -> Self {
         Self::Padding {
             meta: NodeMeta::new(id),
@@ -136,9 +205,27 @@ impl<Msg> Scene<Msg> {
     }
 
     #[must_use]
+    pub fn sized(id: impl Into<NodeId>, constraint: SizeConstraint, child: Scene<Msg>) -> Self {
+        Self::Sized {
+            meta: NodeMeta::new(id),
+            constraint,
+            child: Box::new(child),
+        }
+    }
+
+    #[must_use]
     pub fn viewport(id: impl Into<NodeId>, child: Scene<Msg>) -> Self {
         Self::Viewport {
             meta: NodeMeta::new(id),
+            child: Box::new(child),
+        }
+    }
+
+    #[must_use]
+    pub fn scroll(id: impl Into<NodeId>, offset: ScrollOffset, child: Scene<Msg>) -> Self {
+        Self::Scroll {
+            meta: NodeMeta::new(id),
+            offset,
             child: Box::new(child),
         }
     }
@@ -201,8 +288,11 @@ impl<Msg> Scene<Msg> {
             Self::Text(node) => Some(&node.meta),
             Self::Row { meta, .. }
             | Self::Column { meta, .. }
+            | Self::Stack { meta, .. }
             | Self::Padding { meta, .. }
+            | Self::Sized { meta, .. }
             | Self::Viewport { meta, .. }
+            | Self::Scroll { meta, .. }
             | Self::Border { meta, .. }
             | Self::Annotated { meta, .. } => Some(meta),
         }
@@ -214,8 +304,11 @@ impl<Msg> Scene<Msg> {
             Self::Text(node) => &mut node.meta,
             Self::Row { meta, .. }
             | Self::Column { meta, .. }
+            | Self::Stack { meta, .. }
             | Self::Padding { meta, .. }
+            | Self::Sized { meta, .. }
             | Self::Viewport { meta, .. }
+            | Self::Scroll { meta, .. }
             | Self::Border { meta, .. }
             | Self::Annotated { meta, .. } => meta,
         }
@@ -241,6 +334,10 @@ impl<Msg> Scene<Msg> {
                 meta,
                 children: children.into_iter().map(|child| child.map_msg(f)).collect(),
             },
+            Self::Stack { meta, children } => Scene::Stack {
+                meta,
+                children: children.into_iter().map(|child| child.map_msg(f)).collect(),
+            },
             Self::Padding {
                 meta,
                 padding,
@@ -250,8 +347,26 @@ impl<Msg> Scene<Msg> {
                 padding,
                 child: Box::new(child.map_msg(f)),
             },
+            Self::Sized {
+                meta,
+                constraint,
+                child,
+            } => Scene::Sized {
+                meta,
+                constraint,
+                child: Box::new(child.map_msg(f)),
+            },
             Self::Viewport { meta, child } => Scene::Viewport {
                 meta,
+                child: Box::new(child.map_msg(f)),
+            },
+            Self::Scroll {
+                meta,
+                offset,
+                child,
+            } => Scene::Scroll {
+                meta,
+                offset,
                 child: Box::new(child.map_msg(f)),
             },
             Self::Border { meta, child } => Scene::Border {

@@ -1,4 +1,7 @@
-use crate::{NodeId, Scene, Style, scene::Padding};
+use crate::{
+    NodeId, Scene, Style,
+    scene::{Padding, ScrollOffset, SizeConstraint},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Size {
@@ -53,10 +56,20 @@ pub enum LayoutKind {
     Column {
         children: Vec<LayoutNode>,
     },
+    Stack {
+        children: Vec<LayoutNode>,
+    },
     Padding {
         child: Box<LayoutNode>,
     },
+    Sized {
+        child: Box<LayoutNode>,
+    },
     Viewport {
+        child: Box<LayoutNode>,
+    },
+    Scroll {
+        offset: ScrollOffset,
         child: Box<LayoutNode>,
     },
     Border {
@@ -70,13 +83,14 @@ pub enum LayoutKind {
 
 #[must_use]
 pub fn resolve_layout<Msg>(scene: &Scene<Msg>, bounds: Rect) -> LayoutNode {
-    resolve_with_inherited_style(scene, bounds, Style::PLAIN)
+    resolve_with_inherited_style(scene, bounds, Style::PLAIN, false)
 }
 
 fn resolve_with_inherited_style<Msg>(
     scene: &Scene<Msg>,
     bounds: Rect,
     inherited: Style,
+    preserve_text_extent: bool,
 ) -> LayoutNode {
     match scene {
         Scene::Empty => LayoutNode {
@@ -90,7 +104,11 @@ fn resolve_with_inherited_style<Msg>(
             rect: Rect::new(
                 bounds.x,
                 bounds.y,
-                text_width(&node.content).min(bounds.width),
+                if preserve_text_extent {
+                    text_width(&node.content)
+                } else {
+                    text_width(&node.content).min(bounds.width)
+                },
                 1,
             ),
             style: inherited.combine(node.meta.style),
@@ -107,14 +125,14 @@ fn resolve_with_inherited_style<Msg>(
                 .zip(child_sizes)
                 .map(|(child, size)| {
                     let remaining = bounds.x.saturating_add(bounds.width).saturating_sub(x);
-                    let child_rect = Rect::new(
-                        x,
-                        bounds.y,
-                        size.width.min(remaining),
-                        bounds.height.max(size.height),
-                    );
-                    x = x.saturating_add(child_rect.width);
-                    resolve_with_inherited_style(child, child_rect, style)
+                    let width = if preserve_text_extent {
+                        size.width
+                    } else {
+                        size.width.min(remaining)
+                    };
+                    let child_rect = Rect::new(x, bounds.y, width, bounds.height.max(size.height));
+                    x = x.saturating_add(size.width);
+                    resolve_with_inherited_style(child, child_rect, style, preserve_text_extent)
                 })
                 .collect();
 
@@ -141,14 +159,14 @@ fn resolve_with_inherited_style<Msg>(
                 .zip(child_sizes)
                 .map(|(child, size)| {
                     let remaining = bounds.y.saturating_add(bounds.height).saturating_sub(y);
-                    let child_rect = Rect::new(
-                        bounds.x,
-                        y,
-                        bounds.width.max(size.width),
-                        size.height.min(remaining),
-                    );
-                    y = y.saturating_add(child_rect.height);
-                    resolve_with_inherited_style(child, child_rect, style)
+                    let height = if preserve_text_extent {
+                        size.height
+                    } else {
+                        size.height.min(remaining)
+                    };
+                    let child_rect = Rect::new(bounds.x, y, bounds.width.max(size.width), height);
+                    y = y.saturating_add(size.height);
+                    resolve_with_inherited_style(child, child_rect, style, preserve_text_extent)
                 })
                 .collect();
 
@@ -166,14 +184,36 @@ fn resolve_with_inherited_style<Msg>(
                 },
             }
         }
+        Scene::Stack { meta, children } => {
+            let style = inherited.combine(meta.style);
+            let resolved_children = children
+                .iter()
+                .map(|child| {
+                    resolve_with_inherited_style(child, bounds, style, preserve_text_extent)
+                })
+                .collect();
+
+            LayoutNode {
+                id: meta.id,
+                rect: bounds,
+                style,
+                kind: LayoutKind::Stack {
+                    children: resolved_children,
+                },
+            }
+        }
         Scene::Padding {
             meta,
             padding,
             child,
         } => {
             let style = inherited.combine(meta.style);
-            let child_layout =
-                resolve_with_inherited_style(child, inset_padding(bounds, *padding), style);
+            let child_layout = resolve_with_inherited_style(
+                child,
+                inset_padding(bounds, *padding),
+                style,
+                preserve_text_extent,
+            );
             LayoutNode {
                 id: meta.id,
                 rect: bounds,
@@ -183,9 +223,27 @@ fn resolve_with_inherited_style<Msg>(
                 },
             }
         }
+        Scene::Sized {
+            meta,
+            constraint,
+            child,
+        } => {
+            let style = inherited.combine(meta.style);
+            let constrained = constrain(bounds, *constraint);
+            let child_layout =
+                resolve_with_inherited_style(child, constrained, style, preserve_text_extent);
+            LayoutNode {
+                id: meta.id,
+                rect: constrained,
+                style,
+                kind: LayoutKind::Sized {
+                    child: Box::new(child_layout),
+                },
+            }
+        }
         Scene::Viewport { meta, child } => {
             let style = inherited.combine(meta.style);
-            let child_layout = resolve_with_inherited_style(child, bounds, style);
+            let child_layout = resolve_with_inherited_style(child, bounds, style, true);
             LayoutNode {
                 id: meta.id,
                 rect: bounds,
@@ -195,10 +253,28 @@ fn resolve_with_inherited_style<Msg>(
                 },
             }
         }
+        Scene::Scroll {
+            meta,
+            offset,
+            child,
+        } => {
+            let style = inherited.combine(meta.style);
+            let child_layout = resolve_with_inherited_style(child, bounds, style, true);
+            LayoutNode {
+                id: meta.id,
+                rect: bounds,
+                style,
+                kind: LayoutKind::Scroll {
+                    offset: *offset,
+                    child: Box::new(child_layout),
+                },
+            }
+        }
         Scene::Border { meta, child } => {
             let style = inherited.combine(meta.style);
             let inner = inset(bounds, 1);
-            let child_layout = resolve_with_inherited_style(child, inner, style);
+            let child_layout =
+                resolve_with_inherited_style(child, inner, style, preserve_text_extent);
             LayoutNode {
                 id: meta.id,
                 rect: bounds,
@@ -210,7 +286,8 @@ fn resolve_with_inherited_style<Msg>(
         }
         Scene::Annotated { meta, label, child } => {
             let style = inherited.combine(meta.style);
-            let child_layout = resolve_with_inherited_style(child, bounds, style);
+            let child_layout =
+                resolve_with_inherited_style(child, bounds, style, preserve_text_extent);
             LayoutNode {
                 id: meta.id,
                 rect: bounds,
@@ -243,6 +320,13 @@ pub fn measure<Msg>(scene: &Scene<Msg>) -> Size {
                 acc.height.saturating_add(child_size.height),
             )
         }),
+        Scene::Stack { children, .. } => children.iter().fold(Size::default(), |acc, child| {
+            let child_size = measure(child);
+            Size::new(
+                acc.width.max(child_size.width),
+                acc.height.max(child_size.height),
+            )
+        }),
         Scene::Padding { padding, child, .. } => {
             let child_size = measure(child);
             Size::new(
@@ -256,7 +340,17 @@ pub fn measure<Msg>(scene: &Scene<Msg>) -> Size {
                     .saturating_add(padding.bottom),
             )
         }
+        Scene::Sized {
+            constraint, child, ..
+        } => {
+            let child_size = measure(child);
+            Size::new(
+                constraint.width.unwrap_or(child_size.width),
+                constraint.height.unwrap_or(child_size.height),
+            )
+        }
         Scene::Viewport { child, .. } => measure(child),
+        Scene::Scroll { child, .. } => measure(child),
         Scene::Border { child, .. } => {
             let child_size = measure(child);
             Size::new(
@@ -266,6 +360,15 @@ pub fn measure<Msg>(scene: &Scene<Msg>) -> Size {
         }
         Scene::Annotated { child, .. } => measure(child),
     }
+}
+
+fn constrain(rect: Rect, constraint: SizeConstraint) -> Rect {
+    Rect::new(
+        rect.x,
+        rect.y,
+        constraint.width.unwrap_or(rect.width).min(rect.width),
+        constraint.height.unwrap_or(rect.height).min(rect.height),
+    )
 }
 
 fn inset(rect: Rect, amount: u16) -> Rect {
@@ -324,6 +427,16 @@ mod tests {
     }
 
     #[test]
+    fn sized_overrides_child_measurement() {
+        let sized = Scene::<()>::sized(
+            1_u64,
+            SizeConstraint::new(Some(10), Some(4)),
+            Scene::text(2_u64, "abc"),
+        );
+        assert_eq!(measure(&sized), Size::new(10, 4));
+    }
+
+    #[test]
     fn border_adds_padding_to_measurement() {
         let bordered = Scene::<()>::border(1_u64, Scene::text(2_u64, "abc"));
         assert_eq!(measure(&bordered), Size::new(5, 3));
@@ -359,6 +472,23 @@ mod tests {
     }
 
     #[test]
+    fn resolves_sized_layout_with_constrained_child() {
+        let scene = Scene::<()>::sized(
+            1_u64,
+            SizeConstraint::new(Some(4), Some(2)),
+            Scene::text(2_u64, "abcdef"),
+        );
+        let layout = resolve_layout(&scene, Rect::new(0, 0, 10, 5));
+        match layout.kind {
+            LayoutKind::Sized { child } => {
+                assert_eq!(layout.rect, Rect::new(0, 0, 4, 2));
+                assert_eq!(child.rect, Rect::new(0, 0, 4, 1));
+            }
+            other => panic!("expected sized layout, got {other:?}"),
+        }
+    }
+
+    #[test]
     fn resolves_border_layout_with_inset_child() {
         let scene = Scene::<()>::border(1_u64, Scene::text(2_u64, "abc"));
         let layout = resolve_layout(&scene, Rect::new(0, 0, 5, 3));
@@ -371,14 +501,28 @@ mod tests {
     }
 
     #[test]
-    fn viewport_clips_text_width_to_bounds() {
+    fn viewport_preserves_text_extent_for_render_clipping() {
         let scene = Scene::<()>::viewport(1_u64, Scene::text(2_u64, "abcdef"));
         let layout = resolve_layout(&scene, Rect::new(0, 0, 4, 1));
         match layout.kind {
             LayoutKind::Viewport { child } => {
-                assert_eq!(child.rect, Rect::new(0, 0, 4, 1));
+                assert_eq!(child.rect, Rect::new(0, 0, 6, 1));
             }
             other => panic!("expected viewport layout, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn scroll_preserves_viewport_bounds_in_layout() {
+        let scene =
+            Scene::<()>::scroll(1_u64, ScrollOffset::new(2, 0), Scene::text(2_u64, "abcdef"));
+        let layout = resolve_layout(&scene, Rect::new(0, 0, 4, 1));
+        match layout.kind {
+            LayoutKind::Scroll { offset, child } => {
+                assert_eq!(offset, ScrollOffset::new(2, 0));
+                assert_eq!(child.rect, Rect::new(0, 0, 6, 1));
+            }
+            other => panic!("expected scroll layout, got {other:?}"),
         }
     }
 

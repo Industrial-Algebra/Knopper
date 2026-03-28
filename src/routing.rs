@@ -56,7 +56,9 @@ pub fn activation_message<Msg: Clone>(scene: &Scene<Msg>, target: NodeId) -> Opt
                 None
             }
         }
-        Scene::Row { meta, children } | Scene::Column { meta, children } => {
+        Scene::Row { meta, children }
+        | Scene::Column { meta, children }
+        | Scene::Stack { meta, children } => {
             if meta.id == target {
                 None
             } else {
@@ -66,7 +68,9 @@ pub fn activation_message<Msg: Clone>(scene: &Scene<Msg>, target: NodeId) -> Opt
             }
         }
         Scene::Padding { meta, child, .. }
+        | Scene::Sized { meta, child, .. }
         | Scene::Viewport { meta, child }
+        | Scene::Scroll { meta, child, .. }
         | Scene::Border { meta, child }
         | Scene::Annotated { meta, child, .. } => {
             if meta.id == target {
@@ -94,7 +98,9 @@ fn collect_path<Msg>(
                 None
             }
         }
-        Scene::Row { meta, children } | Scene::Column { meta, children } => {
+        Scene::Row { meta, children }
+        | Scene::Column { meta, children }
+        | Scene::Stack { meta, children } => {
             stack.push(meta.id);
             if meta.id == target {
                 return Some(stack.clone());
@@ -108,7 +114,9 @@ fn collect_path<Msg>(
             found
         }
         Scene::Padding { meta, child, .. }
+        | Scene::Sized { meta, child, .. }
         | Scene::Viewport { meta, child }
+        | Scene::Scroll { meta, child, .. }
         | Scene::Border { meta, child }
         | Scene::Annotated { meta, child, .. } => {
             stack.push(meta.id);

@@ -133,6 +133,10 @@ where
         }
     }
 
+    pub fn send(&mut self, msg: M::Msg) {
+        self.apply_message(msg);
+    }
+
     fn apply_message(&mut self, msg: M::Msg) {
         let mut model = self.model.sample();
         let effect = self.machine.update(&mut model, msg, &self.ctx);
