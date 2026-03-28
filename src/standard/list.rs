@@ -1,5 +1,6 @@
 use crate::{
-    Effect, Machine, NodeId, Role, Scene, SceneBehavior, ScrollOffset, SizeConstraint, Style,
+    Effect, Key, KeyEvent, Machine, NodeId, Role, Scene, SceneBehavior, ScrollOffset,
+    SizeConstraint, Style,
 };
 use cliffy_core::{Behavior, FromGeometric, GA3, IntoGeometric, behavior};
 use core::marker::PhantomData;
@@ -27,7 +28,18 @@ pub enum ListMsg<RowMsg> {
     MoveUp,
     MoveDown,
     Select(usize),
+    Commit(usize),
     Row(RowMsg),
+}
+
+#[must_use]
+pub fn list_key_msg<RowMsg>(state: &ListState, event: KeyEvent) -> Option<ListMsg<RowMsg>> {
+    match event.key {
+        Key::Up => Some(ListMsg::MoveUp),
+        Key::Down => Some(ListMsg::MoveDown),
+        Key::Enter => Some(ListMsg::Commit(state.selected)),
+        _ => None,
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -76,6 +88,11 @@ impl<Item, RowMsg, RenderRow> ListMachine<Item, RowMsg, RenderRow> {
             render_row,
             _phantom: PhantomData,
         }
+    }
+
+    #[must_use]
+    pub fn key_msg(&self, state: &ListState, event: KeyEvent) -> Option<ListMsg<RowMsg>> {
+        list_key_msg(state, event)
     }
 
     #[must_use]
@@ -130,7 +147,7 @@ where
             ListMsg::MoveDown => {
                 model.selected = (model.selected + 1).min(len.saturating_sub(1));
             }
-            ListMsg::Select(index) => {
+            ListMsg::Select(index) | ListMsg::Commit(index) => {
                 model.selected = index.min(len.saturating_sub(1));
             }
             ListMsg::Row(_) => return Effect::None,
@@ -204,7 +221,7 @@ where
                     )
                     .with_role(Role::ListItem)
                     .focusable()
-                    .on_activate(ListMsg::Select(index));
+                    .on_activate(ListMsg::Commit(index));
 
                     let row = render_row(item, is_selected).map_msg(&ListMsg::Row);
                     let mut scene = Scene::row(offset_id(ids.item_base, index), vec![marker, row])
@@ -262,11 +279,68 @@ fn scroll_for(selected: usize, current_scroll: u16, viewport_height: u16) -> u16
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Runtime, activation_message, layout::Rect, render::RenderOp};
+    use crate::{Key, Runtime, activation_message, layout::Rect, render::RenderOp};
 
     #[derive(Debug, Clone, PartialEq, Eq)]
     enum RowMsg {
         Open(&'static str),
+    }
+
+    #[test]
+    fn key_binding_maps_navigation_and_commit_keys() {
+        let state = ListState {
+            selected: 2,
+            scroll: 1,
+        };
+
+        assert_eq!(
+            list_key_msg::<RowMsg>(
+                &state,
+                KeyEvent {
+                    key: Key::Up,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }
+            ),
+            Some(ListMsg::MoveUp)
+        );
+        assert_eq!(
+            list_key_msg::<RowMsg>(
+                &state,
+                KeyEvent {
+                    key: Key::Down,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }
+            ),
+            Some(ListMsg::MoveDown)
+        );
+        assert_eq!(
+            list_key_msg::<RowMsg>(
+                &state,
+                KeyEvent {
+                    key: Key::Enter,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }
+            ),
+            Some(ListMsg::Commit(2))
+        );
+        assert_eq!(
+            list_key_msg::<RowMsg>(
+                &state,
+                KeyEvent {
+                    key: Key::Escape,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }
+            ),
+            None
+        );
     }
 
     #[test]
@@ -380,7 +454,7 @@ mod tests {
     }
 
     #[test]
-    fn selecting_item_via_activation_updates_selection() {
+    fn committing_item_via_activation_updates_selection() {
         let machine = ListMachine::new(|item: &&str, _selected| {
             Scene::<RowMsg>::text(item.len() as u64, *item)
         });
@@ -405,6 +479,48 @@ mod tests {
                 .current()
                 .and_then(crate::FocusPath::current),
             Some(machine.marker_id(2))
+        );
+    }
+
+    #[test]
+    fn machine_method_exposes_key_binding_helper() {
+        let machine = ListMachine::<&str, RowMsg, _>::new(|item: &&str, _selected: bool| {
+            Scene::<RowMsg>::text(item.len() as u64, *item)
+        });
+        let state = ListState {
+            selected: 1,
+            scroll: 0,
+        };
+
+        assert_eq!(
+            machine.key_msg(
+                &state,
+                KeyEvent {
+                    key: Key::Enter,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                }
+            ),
+            Some(ListMsg::Commit(1))
+        );
+    }
+
+    #[test]
+    fn marker_activation_lifts_commit_message() {
+        let machine = ListMachine::new(|item: &&str, _selected| {
+            Scene::<RowMsg>::text(item.len() as u64, *item)
+        });
+        let ctx = ListContext {
+            items: vec!["alpha", "beta"],
+            viewport_height: 2,
+        };
+        let runtime = Runtime::new(machine.clone(), ctx, ());
+        let scene = runtime.scene().sample();
+
+        assert_eq!(
+            activation_message(&scene, machine.marker_id(1)),
+            Some(ListMsg::Commit(1))
         );
     }
 

@@ -35,5 +35,5 @@ pub use runtime::Runtime;
 pub use scene::{
     Interaction, NodeMeta, Padding, Role, Scene, ScrollOffset, SizeConstraint, TextNode,
 };
-pub use standard::list::{ListContext, ListIds, ListMachine, ListMsg, ListState};
+pub use standard::list::{ListContext, ListIds, ListMachine, ListMsg, ListState, list_key_msg};
 pub use style::{Color, Emphasis, Style};
