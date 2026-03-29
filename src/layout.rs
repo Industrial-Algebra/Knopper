@@ -61,6 +61,7 @@ pub enum LayoutKind {
     },
     FocusScope {
         name: String,
+        policy: crate::FocusScopePolicy,
         child: Box<LayoutNode>,
     },
     Align {
@@ -232,7 +233,12 @@ fn resolve_with_inherited_style<Msg>(
                 },
             }
         }
-        Scene::FocusScope { meta, name, child } => {
+        Scene::FocusScope {
+            meta,
+            name,
+            policy,
+            child,
+        } => {
             let style = inherited.combine(meta.style);
             let child_layout =
                 resolve_with_inherited_style(child, bounds, style, preserve_text_extent);
@@ -242,6 +248,7 @@ fn resolve_with_inherited_style<Msg>(
                 style,
                 kind: LayoutKind::FocusScope {
                     name: name.clone(),
+                    policy: *policy,
                     child: Box::new(child_layout),
                 },
             }

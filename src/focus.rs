@@ -1,10 +1,16 @@
-use crate::{Scene, id::NodeId};
+use crate::{Scene, id::NodeId, scene::FocusScopePolicy};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct FocusOrder(Vec<NodeId>);
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct FocusPath(Vec<NodeId>);
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FocusNavigation {
+    pub order: FocusOrder,
+    pub policy: FocusScopePolicy,
+}
 
 impl FocusOrder {
     #[must_use]
@@ -39,10 +45,7 @@ impl FocusOrder {
 
     #[must_use]
     pub fn collect_for_focus<Msg>(scene: &Scene<Msg>, focus: &FocusState) -> Self {
-        focus
-            .current()
-            .and_then(|path| Self::collect_from_focus_path(scene, path))
-            .unwrap_or_else(|| Self::collect_from_scene(scene))
+        FocusNavigation::for_focus(scene, focus).order
     }
 
     #[must_use]
@@ -69,6 +72,65 @@ impl FocusOrder {
             Some(0) => self.0.last().copied(),
             Some(index) => self.0.get(index - 1).copied(),
             None => self.first(),
+        }
+    }
+
+    #[must_use]
+    pub fn next_non_wrapping(&self, current: Option<NodeId>) -> Option<NodeId> {
+        match current.and_then(|id| self.0.iter().position(|candidate| *candidate == id)) {
+            Some(index) => self.0.get(index + 1).copied(),
+            None => self.first(),
+        }
+    }
+
+    #[must_use]
+    pub fn previous_non_wrapping(&self, current: Option<NodeId>) -> Option<NodeId> {
+        match current.and_then(|id| self.0.iter().position(|candidate| *candidate == id)) {
+            Some(index) if index > 0 => self.0.get(index - 1).copied(),
+            Some(_) => None,
+            None => self.first(),
+        }
+    }
+}
+
+impl FocusNavigation {
+    #[must_use]
+    pub fn for_focus<Msg>(scene: &Scene<Msg>, focus: &FocusState) -> Self {
+        let current = focus.current().and_then(FocusPath::current);
+        current
+            .and_then(|id| nearest_scope_descriptor(scene, id))
+            .and_then(|descriptor| {
+                FocusOrder::collect_from_scope(scene, &descriptor.name).map(|order| Self {
+                    order,
+                    policy: descriptor.policy,
+                })
+            })
+            .unwrap_or_else(|| Self {
+                order: FocusOrder::collect_from_scene(scene),
+                policy: FocusScopePolicy::Wrap,
+            })
+    }
+
+    #[must_use]
+    pub fn advance(
+        &self,
+        scene_order: &FocusOrder,
+        current: Option<NodeId>,
+        backward: bool,
+    ) -> Option<NodeId> {
+        match (self.policy, backward) {
+            (FocusScopePolicy::Wrap | FocusScopePolicy::Trap, false) => self.order.next(current),
+            (FocusScopePolicy::Wrap | FocusScopePolicy::Trap, true) => self.order.previous(current),
+            (FocusScopePolicy::Local, false) => self.order.next_non_wrapping(current),
+            (FocusScopePolicy::Local, true) => self.order.previous_non_wrapping(current),
+            (FocusScopePolicy::Passthrough, false) => self
+                .order
+                .next_non_wrapping(current)
+                .or_else(|| scene_order.next(current)),
+            (FocusScopePolicy::Passthrough, true) => self
+                .order
+                .previous_non_wrapping(current)
+                .or_else(|| scene_order.previous(current)),
         }
     }
 }
@@ -133,37 +195,59 @@ fn collect_focusable_in_scope<Msg>(scene: &Scene<Msg>, scope: &str, ids: &mut Ve
     }
 }
 
-fn nearest_scope_name<Msg>(scene: &Scene<Msg>, target: NodeId) -> Option<String> {
-    nearest_scope_name_within(scene, target, None)
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct FocusScopeDescriptor {
+    name: String,
+    policy: FocusScopePolicy,
 }
 
-fn nearest_scope_name_within<Msg>(
+fn nearest_scope_name<Msg>(scene: &Scene<Msg>, target: NodeId) -> Option<String> {
+    nearest_scope_descriptor(scene, target).map(|descriptor| descriptor.name)
+}
+
+fn nearest_scope_descriptor<Msg>(
     scene: &Scene<Msg>,
     target: NodeId,
-    current_scope: Option<&str>,
-) -> Option<String> {
+) -> Option<FocusScopeDescriptor> {
+    nearest_scope_descriptor_within(scene, target, None)
+}
+
+fn nearest_scope_descriptor_within<Msg>(
+    scene: &Scene<Msg>,
+    target: NodeId,
+    current_scope: Option<&FocusScopeDescriptor>,
+) -> Option<FocusScopeDescriptor> {
     match scene {
         Scene::Empty => None,
         Scene::Text(node) => (node.meta.id == target)
-            .then(|| current_scope.map(str::to_owned))
+            .then(|| current_scope.cloned())
             .flatten(),
         Scene::Row { meta, children }
         | Scene::Column { meta, children }
         | Scene::Stack { meta, children } => {
             if meta.id == target {
-                current_scope.map(str::to_owned)
+                current_scope.cloned()
             } else {
                 children
                     .iter()
-                    .find_map(|child| nearest_scope_name_within(child, target, current_scope))
+                    .find_map(|child| nearest_scope_descriptor_within(child, target, current_scope))
             }
         }
-        Scene::FocusScope { meta, name, child } => {
+        Scene::FocusScope {
+            meta,
+            name,
+            policy,
+            child,
+        } => {
             if meta.id == target {
-                current_scope.map(str::to_owned)
+                current_scope.cloned()
             } else {
-                nearest_scope_name_within(child, target, Some(name))
-                    .or_else(|| nearest_scope_name_within(child, target, current_scope))
+                let scope = FocusScopeDescriptor {
+                    name: name.clone(),
+                    policy: *policy,
+                };
+                nearest_scope_descriptor_within(child, target, Some(&scope))
+                    .or_else(|| nearest_scope_descriptor_within(child, target, current_scope))
             }
         }
         Scene::Align { meta, child, .. }
@@ -174,9 +258,9 @@ fn nearest_scope_name_within<Msg>(
         | Scene::Border { meta, child, .. }
         | Scene::Annotated { meta, child, .. } => {
             if meta.id == target {
-                current_scope.map(str::to_owned)
+                current_scope.cloned()
             } else {
-                nearest_scope_name_within(child, target, current_scope)
+                nearest_scope_descriptor_within(child, target, current_scope)
             }
         }
     }
@@ -252,6 +336,8 @@ mod tests {
         assert_eq!(order.previous(Some(NodeId::new(10))), Some(NodeId::new(30)));
         assert_eq!(order.previous(Some(NodeId::new(20))), Some(NodeId::new(10)));
         assert_eq!(order.next(None), Some(NodeId::new(10)));
+        assert_eq!(order.next_non_wrapping(Some(NodeId::new(30))), None);
+        assert_eq!(order.previous_non_wrapping(Some(NodeId::new(10))), None);
     }
 
     #[test]
@@ -332,16 +418,18 @@ mod tests {
         let scene = Scene::<()>::column(
             1_u64,
             vec![
-                Scene::focus_scope(
+                Scene::focus_scope_with_policy(
                     2_u64,
                     "alpha",
+                    FocusScopePolicy::Passthrough,
                     Scene::row(
                         3_u64,
                         vec![
                             Scene::text(4_u64, "a").focusable(),
-                            Scene::focus_scope(
+                            Scene::focus_scope_with_policy(
                                 5_u64,
                                 "alpha-inner",
+                                FocusScopePolicy::Wrap,
                                 Scene::column(
                                     6_u64,
                                     vec![
@@ -382,6 +470,91 @@ mod tests {
         assert_eq!(
             FocusOrder::collect_for_focus(&scene, &focus).as_slice(),
             &[NodeId::new(7), NodeId::new(8)]
+        );
+    }
+
+    #[test]
+    fn derives_navigation_policy_from_nearest_scope() {
+        let scene = Scene::<()>::column(
+            1_u64,
+            vec![
+                Scene::text(2_u64, "outside").focusable(),
+                Scene::focus_scope_with_policy(
+                    3_u64,
+                    "local",
+                    FocusScopePolicy::Local,
+                    Scene::column(
+                        4_u64,
+                        vec![
+                            Scene::text(5_u64, "a").focusable(),
+                            Scene::text(6_u64, "b").focusable(),
+                        ],
+                    ),
+                ),
+            ],
+        );
+        let mut focus = FocusState::new();
+        focus.set(FocusPath::from_vec(vec![
+            NodeId::new(1),
+            NodeId::new(3),
+            NodeId::new(4),
+            NodeId::new(6),
+        ]));
+
+        let navigation = FocusNavigation::for_focus(&scene, &focus);
+        assert_eq!(navigation.policy, FocusScopePolicy::Local);
+        assert_eq!(
+            navigation.order.as_slice(),
+            &[NodeId::new(5), NodeId::new(6)]
+        );
+        assert_eq!(
+            navigation.advance(
+                &FocusOrder::collect_from_scene(&scene),
+                Some(NodeId::new(6)),
+                false
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn passthrough_scope_falls_back_to_scene_order_at_boundaries() {
+        let scene = Scene::<()>::column(
+            1_u64,
+            vec![
+                Scene::text(2_u64, "outside-a").focusable(),
+                Scene::focus_scope_with_policy(
+                    3_u64,
+                    "pass",
+                    FocusScopePolicy::Passthrough,
+                    Scene::column(
+                        4_u64,
+                        vec![
+                            Scene::text(5_u64, "inside-a").focusable(),
+                            Scene::text(6_u64, "inside-b").focusable(),
+                        ],
+                    ),
+                ),
+                Scene::text(7_u64, "outside-b").focusable(),
+            ],
+        );
+        let mut focus = FocusState::new();
+        focus.set(FocusPath::from_vec(vec![
+            NodeId::new(1),
+            NodeId::new(3),
+            NodeId::new(4),
+            NodeId::new(6),
+        ]));
+
+        let navigation = FocusNavigation::for_focus(&scene, &focus);
+        assert_eq!(navigation.policy, FocusScopePolicy::Passthrough);
+        assert_eq!(
+            navigation.advance(
+                &FocusOrder::collect_from_scene(&scene),
+                Some(NodeId::new(6)),
+                false
+            ),
+            Some(NodeId::new(7))
         );
     }
 }

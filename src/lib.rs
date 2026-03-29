@@ -28,7 +28,7 @@ pub use compose::{
 };
 pub use diff::{PatchOp, diff_render_ops};
 pub use effect::Effect;
-pub use focus::{FocusOrder, FocusPath, FocusState};
+pub use focus::{FocusNavigation, FocusOrder, FocusPath, FocusState};
 pub use id::NodeId;
 pub use input::{Key, KeyEvent, ResizeEvent, RuntimeEvent};
 pub use layout::{LayoutKind, LayoutNode, Rect, Size, find_node, measure, resolve_layout};
@@ -38,8 +38,8 @@ pub use renderer::{MockRenderer, Renderer, render_once};
 pub use routing::{RoutedEvent, activation_message, focus_path, route_event};
 pub use runtime::Runtime;
 pub use scene::{
-    Anchor, HorizontalAlign, Interaction, NodeMeta, Padding, Role, Scene, ScrollOffset,
-    SizeConstraint, TextNode, VerticalAlign,
+    Anchor, FocusScopePolicy, HorizontalAlign, Interaction, NodeMeta, Padding, Role, Scene,
+    ScrollOffset, SizeConstraint, TextNode, VerticalAlign,
 };
 pub use standard::command_palette::{
     CommandPaletteContext, CommandPaletteMachine, CommandPaletteMsg, CommandPaletteState,

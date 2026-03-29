@@ -140,6 +140,15 @@ impl ScrollOffset {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum FocusScopePolicy {
+    Wrap,
+    Trap,
+    Local,
+    #[default]
+    Passthrough,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TextNode<Msg> {
     pub meta: NodeMeta,
@@ -166,6 +175,7 @@ pub enum Scene<Msg> {
     FocusScope {
         meta: NodeMeta,
         name: String,
+        policy: FocusScopePolicy,
         child: Box<Scene<Msg>>,
     },
     Align {
@@ -244,9 +254,20 @@ impl<Msg> Scene<Msg> {
 
     #[must_use]
     pub fn focus_scope(id: impl Into<NodeId>, name: impl Into<String>, child: Scene<Msg>) -> Self {
+        Self::focus_scope_with_policy(id, name, FocusScopePolicy::Passthrough, child)
+    }
+
+    #[must_use]
+    pub fn focus_scope_with_policy(
+        id: impl Into<NodeId>,
+        name: impl Into<String>,
+        policy: FocusScopePolicy,
+        child: Scene<Msg>,
+    ) -> Self {
         Self::FocusScope {
             meta: NodeMeta::new(id),
             name: name.into(),
+            policy,
             child: Box::new(child),
         }
     }
@@ -407,9 +428,15 @@ impl<Msg> Scene<Msg> {
                 meta,
                 children: children.into_iter().map(|child| child.map_msg(f)).collect(),
             },
-            Self::FocusScope { meta, name, child } => Scene::FocusScope {
+            Self::FocusScope {
                 meta,
                 name,
+                policy,
+                child,
+            } => Scene::FocusScope {
+                meta,
+                name,
+                policy,
                 child: Box::new(child.map_msg(f)),
             },
             Self::Align {

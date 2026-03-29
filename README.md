@@ -86,6 +86,7 @@ Architecture drafts:
 - [docs/roadmap/00-first-release-roadmap.md](docs/roadmap/00-first-release-roadmap.md)
 - [docs/roadmap/01-collaboration-readiness.md](docs/roadmap/01-collaboration-readiness.md)
 - [docs/roadmap/02-standard-machine-collaboration-audit.md](docs/roadmap/02-standard-machine-collaboration-audit.md)
+- [docs/roadmap/03-participant-local-presence-overlays.md](docs/roadmap/03-participant-local-presence-overlays.md)
 
 ## Engineering baseline
 

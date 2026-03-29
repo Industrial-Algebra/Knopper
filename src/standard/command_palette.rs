@@ -151,9 +151,10 @@ impl CommandPaletteMachine {
             &filtered_list_context(ctx, &state.filtered),
             &CommandPaletteMsg::List,
         );
-        Scene::focus_scope(
+        Scene::focus_scope_with_policy(
             30_299_u64,
             Self::MAIN_SCOPE,
+            crate::FocusScopePolicy::Trap,
             Scene::column(30_298_u64, vec![input_scene, list_scene]),
         )
     }

@@ -1,4 +1,6 @@
-use crate::{FocusOrder, FocusPath, FocusState, Interaction, NodeId, RuntimeEvent, Scene};
+use crate::{
+    FocusNavigation, FocusOrder, FocusPath, FocusState, Interaction, NodeId, RuntimeEvent, Scene,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RoutedEvent<Msg> {
@@ -28,13 +30,12 @@ pub fn route_event<Msg: Clone>(
                 .and_then(|id| activation_message(scene, id))
                 .map_or(RoutedEvent::Ignored, RoutedEvent::Message),
             crate::Key::Tab => {
-                let order = FocusOrder::collect_for_focus(scene, focus);
-                let next = if key.shift {
-                    order.previous(focus.current().and_then(FocusPath::current))
-                } else {
-                    order.next(focus.current().and_then(FocusPath::current))
-                };
-                next.and_then(|id| focus_path(scene, id))
+                let current = focus.current().and_then(FocusPath::current);
+                let scene_order = FocusOrder::collect_from_scene(scene);
+                let navigation = FocusNavigation::for_focus(scene, focus);
+                navigation
+                    .advance(&scene_order, current, key.shift)
+                    .and_then(|id| focus_path(scene, id))
                     .map_or(RoutedEvent::Ignored, |path| {
                         focus.set(path.clone());
                         RoutedEvent::FocusChanged(path)
@@ -262,9 +263,10 @@ mod tests {
 
     #[test]
     fn shift_tab_moves_focus_backward_and_wraps_within_scope() {
-        let scene = Scene::<()>::focus_scope(
+        let scene = Scene::<()>::focus_scope_with_policy(
             1_u64,
             "scope",
+            crate::FocusScopePolicy::Wrap,
             Scene::column(
                 2_u64,
                 vec![
@@ -302,6 +304,95 @@ mod tests {
         assert_eq!(
             focus.current().and_then(FocusPath::current),
             Some(NodeId::new(4))
+        );
+    }
+
+    #[test]
+    fn local_scope_stops_focus_at_boundary() {
+        let scene = Scene::<()>::focus_scope_with_policy(
+            1_u64,
+            "scope",
+            crate::FocusScopePolicy::Local,
+            Scene::column(
+                2_u64,
+                vec![
+                    Scene::text(3_u64, "first").focusable(),
+                    Scene::text(4_u64, "second").focusable(),
+                ],
+            ),
+        );
+        let mut focus = FocusState::new();
+        focus.set(FocusPath::from_vec(vec![
+            NodeId::new(1),
+            NodeId::new(2),
+            NodeId::new(4),
+        ]));
+
+        let routed = route_event(
+            &scene,
+            &mut focus,
+            RuntimeEvent::Key(KeyEvent {
+                key: Key::Tab,
+                ctrl: false,
+                alt: false,
+                shift: false,
+            }),
+        );
+
+        assert_eq!(routed, RoutedEvent::Ignored);
+        assert_eq!(
+            focus.current().and_then(FocusPath::current),
+            Some(NodeId::new(4))
+        );
+    }
+
+    #[test]
+    fn passthrough_scope_moves_focus_outside_scope_at_boundary() {
+        let scene = Scene::<()>::column(
+            1_u64,
+            vec![
+                Scene::text(2_u64, "outside-a").focusable(),
+                Scene::focus_scope_with_policy(
+                    3_u64,
+                    "scope",
+                    crate::FocusScopePolicy::Passthrough,
+                    Scene::column(
+                        4_u64,
+                        vec![
+                            Scene::text(5_u64, "inside-a").focusable(),
+                            Scene::text(6_u64, "inside-b").focusable(),
+                        ],
+                    ),
+                ),
+                Scene::text(7_u64, "outside-b").focusable(),
+            ],
+        );
+        let mut focus = FocusState::new();
+        focus.set(FocusPath::from_vec(vec![
+            NodeId::new(1),
+            NodeId::new(3),
+            NodeId::new(4),
+            NodeId::new(6),
+        ]));
+
+        let routed = route_event(
+            &scene,
+            &mut focus,
+            RuntimeEvent::Key(KeyEvent {
+                key: Key::Tab,
+                ctrl: false,
+                alt: false,
+                shift: false,
+            }),
+        );
+
+        assert_eq!(
+            routed,
+            RoutedEvent::FocusChanged(FocusPath::from_vec(vec![NodeId::new(1), NodeId::new(7)]))
+        );
+        assert_eq!(
+            focus.current().and_then(FocusPath::current),
+            Some(NodeId::new(7))
         );
     }
 }
