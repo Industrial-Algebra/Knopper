@@ -1,4 +1,4 @@
-use crate::{Effect, FocusState, Machine, NodeId, Scene};
+use crate::{Effect, FocusOrder, FocusState, Machine, NodeId, Scene};
 
 #[must_use]
 pub fn child_has_focus(focus: &FocusState, child_root: NodeId) -> bool {
@@ -14,6 +14,21 @@ pub fn dispatch_if_focused<Msg>(
     msg: Option<Msg>,
 ) -> Option<Msg> {
     child_has_focus(focus, child_root).then_some(msg).flatten()
+}
+
+#[must_use]
+pub fn trap_focus(focus: &FocusState, scope_root: NodeId, fallback: NodeId) -> Option<NodeId> {
+    (!child_has_focus(focus, scope_root)).then_some(fallback)
+}
+
+#[must_use]
+pub fn next_focus_in_order(focus: &FocusState, order: &FocusOrder) -> Option<NodeId> {
+    order.next(focus.current().and_then(crate::FocusPath::current))
+}
+
+#[must_use]
+pub fn previous_focus_in_order(focus: &FocusState, order: &FocusOrder) -> Option<NodeId> {
+    order.previous(focus.current().and_then(crate::FocusPath::current))
 }
 
 #[must_use]
@@ -65,7 +80,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Effect, FocusPath, FocusState, PureMachine, Role, Scene};
+    use crate::{Effect, FocusOrder, FocusPath, FocusState, PureMachine, Role, Scene};
 
     #[derive(Debug, Clone, PartialEq, Eq)]
     struct Ctx;
@@ -98,6 +113,18 @@ mod tests {
         assert_eq!(
             dispatch_if_focused::<&str>(&focus, NodeId::new(20), Some("ok")),
             None
+        );
+        assert_eq!(trap_focus(&focus, NodeId::new(10), NodeId::new(11)), None);
+        assert_eq!(
+            trap_focus(&focus, NodeId::new(20), NodeId::new(11)),
+            Some(NodeId::new(11))
+        );
+
+        let order = FocusOrder::new(vec![NodeId::new(10), NodeId::new(11)]);
+        assert_eq!(next_focus_in_order(&focus, &order), Some(NodeId::new(10)));
+        assert_eq!(
+            previous_focus_in_order(&focus, &order),
+            Some(NodeId::new(10))
         );
     }
 

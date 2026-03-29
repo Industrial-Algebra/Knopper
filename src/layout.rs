@@ -1,6 +1,6 @@
 use crate::{
     NodeId, Scene, Style,
-    scene::{Padding, ScrollOffset, SizeConstraint},
+    scene::{Anchor, Padding, ScrollOffset, SizeConstraint},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -59,6 +59,14 @@ pub enum LayoutKind {
     Stack {
         children: Vec<LayoutNode>,
     },
+    FocusScope {
+        name: String,
+        child: Box<LayoutNode>,
+    },
+    Align {
+        anchor: Anchor,
+        child: Box<LayoutNode>,
+    },
     Padding {
         child: Box<LayoutNode>,
     },
@@ -84,6 +92,28 @@ pub enum LayoutKind {
 #[must_use]
 pub fn resolve_layout<Msg>(scene: &Scene<Msg>, bounds: Rect) -> LayoutNode {
     resolve_with_inherited_style(scene, bounds, Style::PLAIN, false)
+}
+
+#[must_use]
+pub fn find_node(layout: &LayoutNode, id: NodeId) -> Option<&LayoutNode> {
+    if layout.id == id {
+        return Some(layout);
+    }
+
+    match &layout.kind {
+        LayoutKind::Row { children }
+        | LayoutKind::Column { children }
+        | LayoutKind::Stack { children } => children.iter().find_map(|child| find_node(child, id)),
+        LayoutKind::FocusScope { child, .. }
+        | LayoutKind::Align { child, .. }
+        | LayoutKind::Padding { child }
+        | LayoutKind::Sized { child }
+        | LayoutKind::Viewport { child }
+        | LayoutKind::Scroll { child, .. }
+        | LayoutKind::Border { child }
+        | LayoutKind::Annotated { child, .. } => find_node(child, id),
+        LayoutKind::Empty | LayoutKind::Text { .. } => None,
+    }
 }
 
 fn resolve_with_inherited_style<Msg>(
@@ -199,6 +229,40 @@ fn resolve_with_inherited_style<Msg>(
                 style,
                 kind: LayoutKind::Stack {
                     children: resolved_children,
+                },
+            }
+        }
+        Scene::FocusScope { meta, name, child } => {
+            let style = inherited.combine(meta.style);
+            let child_layout =
+                resolve_with_inherited_style(child, bounds, style, preserve_text_extent);
+            LayoutNode {
+                id: meta.id,
+                rect: bounds,
+                style,
+                kind: LayoutKind::FocusScope {
+                    name: name.clone(),
+                    child: Box::new(child_layout),
+                },
+            }
+        }
+        Scene::Align {
+            meta,
+            anchor,
+            child,
+        } => {
+            let style = inherited.combine(meta.style);
+            let child_size = measure(child);
+            let child_rect = anchored_rect(bounds, child_size, *anchor);
+            let child_layout =
+                resolve_with_inherited_style(child, child_rect, style, preserve_text_extent);
+            LayoutNode {
+                id: meta.id,
+                rect: bounds,
+                style,
+                kind: LayoutKind::Align {
+                    anchor: *anchor,
+                    child: Box::new(child_layout),
                 },
             }
         }
@@ -327,6 +391,8 @@ pub fn measure<Msg>(scene: &Scene<Msg>) -> Size {
                 acc.height.max(child_size.height),
             )
         }),
+        Scene::FocusScope { child, .. } => measure(child),
+        Scene::Align { child, .. } => measure(child),
         Scene::Padding { padding, child, .. } => {
             let child_size = measure(child);
             Size::new(
@@ -371,6 +437,24 @@ fn constrain(rect: Rect, constraint: SizeConstraint) -> Rect {
     )
 }
 
+fn anchored_rect(bounds: Rect, child_size: Size, anchor: Anchor) -> Rect {
+    let width = child_size.width.min(bounds.width).max(1);
+    let height = child_size.height.min(bounds.height).max(1);
+
+    let x = match anchor.horizontal {
+        crate::HorizontalAlign::Start => bounds.x,
+        crate::HorizontalAlign::Center => bounds.x + bounds.width.saturating_sub(width) / 2,
+        crate::HorizontalAlign::End => bounds.x + bounds.width.saturating_sub(width),
+    };
+    let y = match anchor.vertical {
+        crate::VerticalAlign::Start => bounds.y,
+        crate::VerticalAlign::Center => bounds.y + bounds.height.saturating_sub(height) / 2,
+        crate::VerticalAlign::End => bounds.y + bounds.height.saturating_sub(height),
+    };
+
+    Rect::new(x, y, width, height)
+}
+
 fn inset(rect: Rect, amount: u16) -> Rect {
     let double = amount.saturating_mul(2);
     Rect::new(
@@ -403,7 +487,7 @@ fn text_width(content: &str) -> u16 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Color, Scene};
+    use crate::{Anchor, Color, HorizontalAlign, Scene, VerticalAlign};
 
     #[test]
     fn measures_rows_and_columns() {
@@ -469,6 +553,55 @@ mod tests {
             }
             other => panic!("expected padding layout, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn resolves_aligned_layout_with_centered_child() {
+        let scene = Scene::<()>::align(
+            1_u64,
+            Anchor::center(),
+            Scene::sized(
+                2_u64,
+                SizeConstraint::new(Some(4), Some(2)),
+                Scene::text(3_u64, "ok"),
+            ),
+        );
+        let layout = resolve_layout(&scene, Rect::new(0, 0, 10, 6));
+        match layout.kind {
+            LayoutKind::Align { child, .. } => {
+                assert_eq!(layout.rect, Rect::new(0, 0, 10, 6));
+                assert_eq!(child.rect, Rect::new(3, 2, 4, 2));
+            }
+            other => panic!("expected align layout, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn resolves_aligned_layout_with_end_anchor() {
+        let scene = Scene::<()>::align(
+            1_u64,
+            Anchor::new(HorizontalAlign::End, VerticalAlign::End),
+            Scene::sized(
+                2_u64,
+                SizeConstraint::new(Some(3), Some(2)),
+                Scene::text(3_u64, "ok"),
+            ),
+        );
+        let layout = resolve_layout(&scene, Rect::new(0, 0, 10, 6));
+        match layout.kind {
+            LayoutKind::Align { child, .. } => {
+                assert_eq!(child.rect, Rect::new(7, 4, 3, 2));
+            }
+            other => panic!("expected align layout, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn find_node_descends_through_align() {
+        let scene = Scene::<()>::align(1_u64, Anchor::center(), Scene::text(2_u64, "ok"));
+        let layout = resolve_layout(&scene, Rect::new(0, 0, 10, 6));
+        let node = find_node(&layout, NodeId::new(2)).expect("aligned child should be found");
+        assert_eq!(node.id, NodeId::new(2));
     }
 
     #[test]

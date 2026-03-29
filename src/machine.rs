@@ -1,4 +1,4 @@
-use crate::{Effect, Scene};
+use crate::{Effect, LayoutNode, Scene};
 use cliffy_core::{Behavior, FromGeometric, IntoGeometric, behavior};
 use core::marker::PhantomData;
 
@@ -39,6 +39,16 @@ pub trait Machine {
     {
         self.project(behavior(model.clone()), behavior(shared.clone()), ctx)
             .sample()
+    }
+
+    fn cursor_position(
+        &self,
+        _model: &Self::Model,
+        _shared: &Self::Shared,
+        _ctx: &Self::Context,
+        _layout: &LayoutNode,
+    ) -> Option<(u16, u16)> {
+        None
     }
 }
 

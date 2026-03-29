@@ -61,9 +61,10 @@ fn collect_ops(layout: &LayoutNode, ops: &mut Vec<RenderOp>, context: RenderCont
                 collect_ops(child, ops, context);
             }
         }
-        LayoutKind::Padding { child } | LayoutKind::Sized { child } => {
-            collect_ops(child, ops, context)
-        }
+        LayoutKind::FocusScope { child, .. }
+        | LayoutKind::Align { child, .. }
+        | LayoutKind::Padding { child }
+        | LayoutKind::Sized { child } => collect_ops(child, ops, context),
         LayoutKind::Viewport { child } => collect_ops(
             child,
             ops,

@@ -1,4 +1,4 @@
-use crate::{FocusPath, FocusState, Interaction, NodeId, RuntimeEvent, Scene};
+use crate::{FocusOrder, FocusPath, FocusState, Interaction, NodeId, RuntimeEvent, Scene};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RoutedEvent<Msg> {
@@ -27,6 +27,19 @@ pub fn route_event<Msg: Clone>(
                 .and_then(FocusPath::current)
                 .and_then(|id| activation_message(scene, id))
                 .map_or(RoutedEvent::Ignored, RoutedEvent::Message),
+            crate::Key::Tab => {
+                let order = FocusOrder::collect_for_focus(scene, focus);
+                let next = if key.shift {
+                    order.previous(focus.current().and_then(FocusPath::current))
+                } else {
+                    order.next(focus.current().and_then(FocusPath::current))
+                };
+                next.and_then(|id| focus_path(scene, id))
+                    .map_or(RoutedEvent::Ignored, |path| {
+                        focus.set(path.clone());
+                        RoutedEvent::FocusChanged(path)
+                    })
+            }
             _ => RoutedEvent::Ignored,
         },
         RuntimeEvent::Blur(_)
@@ -67,7 +80,9 @@ pub fn activation_message<Msg: Clone>(scene: &Scene<Msg>, target: NodeId) -> Opt
                     .find_map(|child| activation_message(child, target))
             }
         }
-        Scene::Padding { meta, child, .. }
+        Scene::FocusScope { meta, child, .. }
+        | Scene::Align { meta, child, .. }
+        | Scene::Padding { meta, child, .. }
         | Scene::Sized { meta, child, .. }
         | Scene::Viewport { meta, child }
         | Scene::Scroll { meta, child, .. }
@@ -113,7 +128,9 @@ fn collect_path<Msg>(
             }
             found
         }
-        Scene::Padding { meta, child, .. }
+        Scene::FocusScope { meta, child, .. }
+        | Scene::Align { meta, child, .. }
+        | Scene::Padding { meta, child, .. }
         | Scene::Sized { meta, child, .. }
         | Scene::Viewport { meta, child }
         | Scene::Scroll { meta, child, .. }
@@ -207,5 +224,84 @@ mod tests {
         );
 
         assert_eq!(routed, RoutedEvent::Message("run"));
+    }
+
+    #[test]
+    fn tab_key_advances_focus_using_scene_derived_order() {
+        let scene = Scene::<()>::column(
+            1_u64,
+            vec![
+                Scene::text(2_u64, "first").focusable(),
+                Scene::text(3_u64, "second").focusable(),
+                Scene::text(4_u64, "third").focusable(),
+            ],
+        );
+        let mut focus = FocusState::new();
+        focus.set(FocusPath::from_vec(vec![NodeId::new(1), NodeId::new(2)]));
+
+        let routed = route_event(
+            &scene,
+            &mut focus,
+            RuntimeEvent::Key(KeyEvent {
+                key: Key::Tab,
+                ctrl: false,
+                alt: false,
+                shift: false,
+            }),
+        );
+
+        assert_eq!(
+            routed,
+            RoutedEvent::FocusChanged(FocusPath::from_vec(vec![NodeId::new(1), NodeId::new(3)]))
+        );
+        assert_eq!(
+            focus.current().and_then(FocusPath::current),
+            Some(NodeId::new(3))
+        );
+    }
+
+    #[test]
+    fn shift_tab_moves_focus_backward_and_wraps_within_scope() {
+        let scene = Scene::<()>::focus_scope(
+            1_u64,
+            "scope",
+            Scene::column(
+                2_u64,
+                vec![
+                    Scene::text(3_u64, "first").focusable(),
+                    Scene::text(4_u64, "second").focusable(),
+                ],
+            ),
+        );
+        let mut focus = FocusState::new();
+        focus.set(FocusPath::from_vec(vec![
+            NodeId::new(1),
+            NodeId::new(2),
+            NodeId::new(3),
+        ]));
+
+        let routed = route_event(
+            &scene,
+            &mut focus,
+            RuntimeEvent::Key(KeyEvent {
+                key: Key::Tab,
+                ctrl: false,
+                alt: false,
+                shift: true,
+            }),
+        );
+
+        assert_eq!(
+            routed,
+            RoutedEvent::FocusChanged(FocusPath::from_vec(vec![
+                NodeId::new(1),
+                NodeId::new(2),
+                NodeId::new(4)
+            ]))
+        );
+        assert_eq!(
+            focus.current().and_then(FocusPath::current),
+            Some(NodeId::new(4))
+        );
     }
 }

@@ -91,6 +91,43 @@ impl SizeConstraint {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum HorizontalAlign {
+    #[default]
+    Start,
+    Center,
+    End,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum VerticalAlign {
+    #[default]
+    Start,
+    Center,
+    End,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Anchor {
+    pub horizontal: HorizontalAlign,
+    pub vertical: VerticalAlign,
+}
+
+impl Anchor {
+    #[must_use]
+    pub const fn new(horizontal: HorizontalAlign, vertical: VerticalAlign) -> Self {
+        Self {
+            horizontal,
+            vertical,
+        }
+    }
+
+    #[must_use]
+    pub const fn center() -> Self {
+        Self::new(HorizontalAlign::Center, VerticalAlign::Center)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ScrollOffset {
     pub x: u16,
     pub y: u16,
@@ -125,6 +162,16 @@ pub enum Scene<Msg> {
     Stack {
         meta: NodeMeta,
         children: Vec<Scene<Msg>>,
+    },
+    FocusScope {
+        meta: NodeMeta,
+        name: String,
+        child: Box<Scene<Msg>>,
+    },
+    Align {
+        meta: NodeMeta,
+        anchor: Anchor,
+        child: Box<Scene<Msg>>,
     },
     Padding {
         meta: NodeMeta,
@@ -193,6 +240,24 @@ impl<Msg> Scene<Msg> {
     #[must_use]
     pub fn overlay(id: impl Into<NodeId>, children: impl Into<Vec<Scene<Msg>>>) -> Self {
         Self::stack(id, children)
+    }
+
+    #[must_use]
+    pub fn focus_scope(id: impl Into<NodeId>, name: impl Into<String>, child: Scene<Msg>) -> Self {
+        Self::FocusScope {
+            meta: NodeMeta::new(id),
+            name: name.into(),
+            child: Box::new(child),
+        }
+    }
+
+    #[must_use]
+    pub fn align(id: impl Into<NodeId>, anchor: Anchor, child: Scene<Msg>) -> Self {
+        Self::Align {
+            meta: NodeMeta::new(id),
+            anchor,
+            child: Box::new(child),
+        }
     }
 
     #[must_use]
@@ -289,6 +354,8 @@ impl<Msg> Scene<Msg> {
             Self::Row { meta, .. }
             | Self::Column { meta, .. }
             | Self::Stack { meta, .. }
+            | Self::FocusScope { meta, .. }
+            | Self::Align { meta, .. }
             | Self::Padding { meta, .. }
             | Self::Sized { meta, .. }
             | Self::Viewport { meta, .. }
@@ -305,6 +372,8 @@ impl<Msg> Scene<Msg> {
             Self::Row { meta, .. }
             | Self::Column { meta, .. }
             | Self::Stack { meta, .. }
+            | Self::FocusScope { meta, .. }
+            | Self::Align { meta, .. }
             | Self::Padding { meta, .. }
             | Self::Sized { meta, .. }
             | Self::Viewport { meta, .. }
@@ -337,6 +406,20 @@ impl<Msg> Scene<Msg> {
             Self::Stack { meta, children } => Scene::Stack {
                 meta,
                 children: children.into_iter().map(|child| child.map_msg(f)).collect(),
+            },
+            Self::FocusScope { meta, name, child } => Scene::FocusScope {
+                meta,
+                name,
+                child: Box::new(child.map_msg(f)),
+            },
+            Self::Align {
+                meta,
+                anchor,
+                child,
+            } => Scene::Align {
+                meta,
+                anchor,
+                child: Box::new(child.map_msg(f)),
             },
             Self::Padding {
                 meta,

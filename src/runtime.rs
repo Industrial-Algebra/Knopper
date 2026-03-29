@@ -82,6 +82,17 @@ where
     }
 
     #[must_use]
+    pub fn cursor(&self, bounds: Rect) -> Option<(u16, u16)> {
+        let layout = self.layout(bounds);
+        self.machine.cursor_position(
+            &self.model.sample(),
+            &self.shared.sample(),
+            &self.ctx,
+            &layout,
+        )
+    }
+
+    #[must_use]
     pub fn diff(&self, bounds: Rect) -> Vec<PatchOp> {
         let next = self.render_ops(bounds);
         diff_render_ops(&self.last_render_ops, &next)
@@ -124,6 +135,14 @@ where
         backend.execute(&commands)?;
         self.last_render_ops = next;
         Ok(())
+    }
+
+    pub fn render_to_backend_auto_cursor<B: TerminalBackend>(
+        &mut self,
+        backend: &mut B,
+        bounds: Rect,
+    ) -> Result<(), B::Error> {
+        self.render_to_backend_with_cursor(backend, bounds, self.cursor(bounds))
     }
 
     pub fn dispatch(&mut self, event: RuntimeEvent) {
