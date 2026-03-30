@@ -1,5 +1,9 @@
+pub mod button;
 pub mod command_palette;
 pub mod input;
 pub mod list;
 pub mod list_detail;
 pub mod modal;
+pub mod tabs;
+pub mod textarea;
+pub mod toggle;

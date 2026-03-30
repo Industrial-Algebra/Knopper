@@ -35,6 +35,10 @@ Today the project already includes:
 - standard machines including:
   - list
   - input
+  - button
+  - toggle/checkbox
+  - tabs / segmented selector
+  - textarea
   - list-detail composition
   - command palette
   - reusable modal helper
@@ -87,6 +91,7 @@ Architecture drafts:
 - [docs/roadmap/01-collaboration-readiness.md](docs/roadmap/01-collaboration-readiness.md)
 - [docs/roadmap/02-standard-machine-collaboration-audit.md](docs/roadmap/02-standard-machine-collaboration-audit.md)
 - [docs/roadmap/03-participant-local-presence-overlays.md](docs/roadmap/03-participant-local-presence-overlays.md)
+- [docs/roadmap/04-textarea-editor-design.md](docs/roadmap/04-textarea-editor-design.md)
 
 ## Engineering baseline
 
