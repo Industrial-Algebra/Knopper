@@ -82,6 +82,10 @@ The current binary prints a rendered snapshot of a composed Knopper demo workspa
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for workflow and coding guidelines.
 
+## Guides
+
+- [docs/guides/01-writing-a-machine.md](docs/guides/01-writing-a-machine.md)
+
 ## Architecture
 
 Architecture drafts:
