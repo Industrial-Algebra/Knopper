@@ -1,6 +1,7 @@
 pub mod annotation;
 pub mod backend;
 pub mod compose;
+pub mod demo;
 pub mod diff;
 pub mod effect;
 pub mod focus;
@@ -26,6 +27,7 @@ pub use compose::{
     child_has_focus, dispatch_if_focused, map_effect, next_focus_in_order, previous_focus_in_order,
     project_child, trap_focus, update_child,
 };
+pub use demo::{DemoContext, DemoMachine, DemoMsg, DemoState};
 pub use diff::{PatchOp, diff_render_ops};
 pub use effect::Effect;
 pub use focus::{FocusNavigation, FocusOrder, FocusPath, FocusState};

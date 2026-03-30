@@ -70,6 +70,14 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo test --all-features
 ```
 
+Run the current demo snapshot binary with:
+
+```bash
+cargo run
+```
+
+The current binary prints a rendered snapshot of a composed Knopper demo workspace built from the standard machines.
+
 ## Contributor guidance
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for workflow and coding guidelines.
