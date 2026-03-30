@@ -85,6 +85,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for workflow and coding guidelines.
 ## Guides
 
 - [docs/guides/01-writing-a-machine.md](docs/guides/01-writing-a-machine.md)
+- [docs/guides/02-composing-machines.md](docs/guides/02-composing-machines.md)
+- [docs/guides/03-focus-and-modal-semantics.md](docs/guides/03-focus-and-modal-semantics.md)
+- [docs/guides/04-scene-layout-render-pipeline.md](docs/guides/04-scene-layout-render-pipeline.md)
+- [docs/guides/05-walkthrough-demo-workspace.md](docs/guides/05-walkthrough-demo-workspace.md)
 
 ## Architecture
 
