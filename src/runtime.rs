@@ -67,6 +67,13 @@ where
         &self.focus
     }
 
+    pub fn set_context(&mut self, ctx: M::Context) {
+        self.ctx = ctx.clone();
+        self.scene = self
+            .machine
+            .project(self.model.clone(), self.shared.clone(), &self.ctx);
+    }
+
     pub fn set_shared(&self, shared: M::Shared) {
         self.shared.set(shared);
     }

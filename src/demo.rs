@@ -1,7 +1,11 @@
 use crate::{
-    Effect, FocusScopePolicy, Machine, Scene, SceneBehavior, SizeConstraint, Style, project_child,
+    Color, Effect, FocusPath, FocusScopePolicy, FocusState, Key, KeyEvent, Machine, Scene,
+    SceneBehavior, SizeConstraint, Style, child_has_focus, dispatch_if_focused, project_child,
     standard::{
         button::{ButtonContext, ButtonMachine, ButtonMsg, ButtonState},
+        command_palette::{
+            CommandPaletteContext, CommandPaletteMachine, CommandPaletteMsg, CommandPaletteState,
+        },
         list::{ListContext, ListMachine, ListMsg, ListState},
         tabs::{TabsContext, TabsMachine, TabsMsg, TabsState},
         textarea::{TextareaContext, TextareaMachine, TextareaMsg, TextareaState},
@@ -18,6 +22,9 @@ pub struct DemoState {
     pub button: ButtonState,
     pub textarea: TextareaState,
     pub list: ListState,
+    pub palette: CommandPaletteState,
+    pub focused: Option<FocusPath>,
+    pub cursor: Option<(u16, u16)>,
     pub status: String,
 }
 
@@ -40,17 +47,52 @@ pub enum DemoMsg {
     Button(ButtonMsg),
     Textarea(TextareaMsg),
     List(ListMsg<()>),
+    Palette(CommandPaletteMsg),
+    FocusChanged(Option<FocusPath>),
+    CursorChanged(Option<(u16, u16)>),
+    OpenPalette,
 }
 
 #[derive(Debug, Clone)]
 pub struct DemoContext {
     pub width: u16,
     pub height: u16,
+    pub list_width: u16,
     pub tabs: TabsContext,
     pub toggle: ToggleContext,
     pub button: ButtonContext,
     pub textarea: TextareaContext,
     pub list: ListContext<String>,
+    pub palette: CommandPaletteContext,
+}
+
+impl DemoContext {
+    #[must_use]
+    pub fn for_bounds(bounds: crate::Rect) -> Self {
+        let mut ctx = Self::default();
+        let workspace_width = bounds.width.saturating_sub(2).max(24);
+        let workspace_height = bounds.height.saturating_sub(2).max(12);
+        let body_width = workspace_width.saturating_sub(2).max(20);
+        let list_width = if body_width >= 48 {
+            24
+        } else {
+            (body_width / 3).max(14)
+        };
+        let textarea_width = body_width.saturating_sub(list_width).max(12);
+        let editor_height = workspace_height.saturating_sub(8).clamp(4, 12);
+        let palette_width = body_width.clamp(20, 40);
+
+        ctx.width = workspace_width;
+        ctx.height = workspace_height;
+        ctx.list_width = list_width;
+        ctx.textarea.width = textarea_width;
+        ctx.textarea.height = editor_height;
+        ctx.list.viewport_height = editor_height;
+        ctx.palette.width = palette_width;
+        ctx.palette.list_height = workspace_height.saturating_sub(10).clamp(3, 6);
+        ctx.palette.input.width = palette_width.saturating_sub(2).max(10);
+        ctx
+    }
 }
 
 impl Default for DemoContext {
@@ -58,6 +100,7 @@ impl Default for DemoContext {
         Self {
             width: 72,
             height: 20,
+            list_width: 24,
             tabs: TabsContext {
                 root_id: 90_000_u64.into(),
                 tab_base_id: 90_100_u64.into(),
@@ -92,6 +135,22 @@ impl Default for DemoContext {
                 ],
                 viewport_height: 8,
             },
+            palette: CommandPaletteContext {
+                items: vec![
+                    "Open Notes".into(),
+                    "Toggle Shared Mode".into(),
+                    "Sync Workspace".into(),
+                    "Show Tasks".into(),
+                ],
+                width: 36,
+                list_height: 5,
+                input: crate::InputContext {
+                    root_id: 96_000_u64.into(),
+                    field_id: 96_001_u64.into(),
+                    width: 34,
+                    placeholder: "Type a workspace command".into(),
+                },
+            },
         }
     }
 }
@@ -105,6 +164,7 @@ pub struct DemoMachine {
     button: ButtonMachine,
     textarea: TextareaMachine,
     list: DemoListMachine,
+    palette: CommandPaletteMachine,
 }
 
 impl Default for DemoMachine {
@@ -122,6 +182,65 @@ impl DemoMachine {
             button: ButtonMachine,
             textarea: TextareaMachine,
             list: ListMachine::new(render_demo_item as fn(&String, bool) -> Scene<()>),
+            palette: CommandPaletteMachine::new(),
+        }
+    }
+
+    #[must_use]
+    pub fn key_msg(
+        &self,
+        focus: &FocusState,
+        state: &DemoState,
+        event: KeyEvent,
+        ctx: &DemoContext,
+    ) -> Option<DemoMsg> {
+        if event.ctrl && matches!(event.key, Key::Char('p') | Key::Char('P')) {
+            return Some(DemoMsg::OpenPalette);
+        }
+
+        if state.palette.open {
+            return self
+                .palette
+                .key_msg(focus, &state.palette, event, &ctx.palette)
+                .map(DemoMsg::Palette);
+        }
+
+        if child_has_focus(focus, self.tabs.root_id(&ctx.tabs)) {
+            self.tabs.key_msg(&state.tabs, event).map(DemoMsg::Tabs)
+        } else if child_has_focus(focus, self.toggle.root_id(&ctx.toggle)) {
+            self.toggle.key_msg(event).map(DemoMsg::Toggle)
+        } else if child_has_focus(focus, self.button.root_id(&ctx.button)) {
+            self.button.key_msg(event).map(DemoMsg::Button)
+        } else if child_has_focus(focus, self.textarea.root_id(&ctx.textarea)) {
+            self.textarea.key_msg(event).map(DemoMsg::Textarea)
+        } else {
+            dispatch_if_focused(
+                focus,
+                self.list.root_id(),
+                self.list.key_msg(&state.list, event).map(DemoMsg::List),
+            )
+        }
+    }
+
+    fn apply_palette_command(&self, model: &mut DemoState, ctx: &DemoContext, index: usize) {
+        match ctx.palette.items.get(index).map(String::as_str) {
+            Some("Open Notes") => {
+                model.tabs.selected = 1;
+                model.tabs.committed = Some(1);
+            }
+            Some("Toggle Shared Mode") => {
+                model.toggle.checked = !model.toggle.checked;
+            }
+            Some("Sync Workspace") => {
+                model.button.activations = model.button.activations.saturating_add(1);
+            }
+            Some("Show Tasks") => {
+                model.tabs.selected = 2;
+                model.tabs.committed = Some(2);
+                model.list.selected = 0;
+                model.list.scroll = 0;
+            }
+            _ => {}
         }
     }
 
@@ -137,9 +256,21 @@ impl DemoMachine {
             .as_deref()
             .unwrap_or("<draft>")
             .replace('\n', " | ");
+        let focus = model
+            .focused
+            .as_ref()
+            .and_then(FocusPath::current)
+            .map(|id| format!("{:?}", id))
+            .unwrap_or_else(|| "none".into());
         model.status = format!(
-            "tab:{active_tab} shared:{} syncs:{} note:{} selected-task:{}",
-            model.toggle.checked, model.button.activations, committed, model.list.selected
+            "tab:{active_tab} shared:{} syncs:{} note:{} selected-task:{} palette:{} palette-commit:{:?} focus:{focus} cursor:{:?}",
+            model.toggle.checked,
+            model.button.activations,
+            committed,
+            model.list.selected,
+            model.palette.open,
+            model.palette.committed,
+            model.cursor
         );
     }
 }
@@ -153,6 +284,10 @@ impl Machine for DemoMachine {
     fn init(&self, ctx: &Self::Context) -> Self::Model {
         let mut state = DemoState {
             status: String::new(),
+            palette: CommandPaletteState {
+                open: false,
+                ..self.palette.init(&ctx.palette)
+            },
             ..DemoState::default()
         };
         self.sync_status(&mut state, ctx);
@@ -193,6 +328,46 @@ impl Machine for DemoMachine {
             DemoMsg::List(msg) => {
                 update_child(&self.list, &mut model.list, msg, &ctx.list, &DemoMsg::List)
             }
+            DemoMsg::Palette(msg) => {
+                let committed_before = model.palette.committed;
+                let effect = update_child(
+                    &self.palette,
+                    &mut model.palette,
+                    msg,
+                    &ctx.palette,
+                    &DemoMsg::Palette,
+                );
+                if let Some(index) = model.palette.committed
+                    && committed_before != Some(index)
+                {
+                    self.apply_palette_command(model, ctx, index);
+                    model.palette.open = false;
+                }
+                effect
+            }
+            DemoMsg::FocusChanged(path) => {
+                model.focused = path;
+                Effect::None
+            }
+            DemoMsg::CursorChanged(position) => {
+                model.cursor = position;
+                Effect::None
+            }
+            DemoMsg::OpenPalette => {
+                model.palette.open = true;
+                model.palette.filtered = ctx
+                    .palette
+                    .items
+                    .iter()
+                    .enumerate()
+                    .map(|(index, _)| index)
+                    .collect();
+                model.palette.input.value.clear();
+                model.palette.input.cursor = 0;
+                model.palette.input.committed = None;
+                model.palette.list = ListState::default();
+                Effect::RequestFocus(self.palette.input_root_id(&ctx.palette))
+            }
         };
         self.sync_status(model, ctx);
         effect
@@ -204,13 +379,30 @@ impl Machine for DemoMachine {
         _shared: &Self::Shared,
         ctx: &Self::Context,
     ) -> Scene<Self::Msg> {
-        let tabs = project_child(&self.tabs, &model.tabs, &(), &ctx.tabs, &DemoMsg::Tabs);
+        let mut focus = FocusState::new();
+        if let Some(path) = model.focused.clone() {
+            focus.set(path);
+        }
+
+        let tabs = project_child(&self.tabs, &model.tabs, &(), &ctx.tabs, &DemoMsg::Tabs)
+            .with_style(if child_has_focus(&focus, self.tabs.root_id(&ctx.tabs)) {
+                focus_style()
+            } else {
+                Style::PLAIN
+            });
         let toggle = project_child(
             &self.toggle,
             &model.toggle,
             &(),
             &ctx.toggle,
             &DemoMsg::Toggle,
+        )
+        .with_style(
+            if child_has_focus(&focus, self.toggle.root_id(&ctx.toggle)) {
+                focus_style()
+            } else {
+                Style::PLAIN
+            },
         );
         let button = project_child(
             &self.button,
@@ -218,6 +410,13 @@ impl Machine for DemoMachine {
             &(),
             &ctx.button,
             &DemoMsg::Button,
+        )
+        .with_style(
+            if child_has_focus(&focus, self.button.root_id(&ctx.button)) {
+                focus_style()
+            } else {
+                Style::PLAIN
+            },
         );
         let textarea = project_child(
             &self.textarea,
@@ -225,27 +424,56 @@ impl Machine for DemoMachine {
             &(),
             &ctx.textarea,
             &DemoMsg::Textarea,
+        )
+        .with_style(
+            if child_has_focus(&focus, self.textarea.root_id(&ctx.textarea)) {
+                focus_style()
+            } else {
+                Style::PLAIN
+            },
         );
-        let list = project_child(&self.list, &model.list, &(), &ctx.list, &DemoMsg::List);
+        let list = project_child(&self.list, &model.list, &(), &ctx.list, &DemoMsg::List)
+            .with_style(if child_has_focus(&focus, self.list.root_id()) {
+                focus_style()
+            } else {
+                Style::PLAIN
+            });
+        let palette = project_child(
+            &self.palette,
+            &model.palette,
+            &(),
+            &ctx.palette,
+            &DemoMsg::Palette,
+        );
 
         let controls = Scene::row(94_000_u64, vec![toggle, button]);
         let body = Scene::row(
             94_001_u64,
             vec![
-                Scene::sized(94_002_u64, SizeConstraint::width(46), textarea),
+                Scene::sized(
+                    94_002_u64,
+                    SizeConstraint::width(ctx.textarea.width),
+                    textarea,
+                ),
                 Scene::sized(
                     94_003_u64,
-                    SizeConstraint::width(24),
+                    SizeConstraint::width(ctx.list_width),
                     Scene::border(94_004_u64, list),
                 ),
             ],
         );
         let status = Scene::border(
             94_005_u64,
-            Scene::text(94_006_u64, model.status.clone()).with_style(Style::PLAIN.bold()),
+            Scene::column(
+                94_013_u64,
+                vec![
+                    Scene::text(94_006_u64, model.status.clone()).with_style(Style::PLAIN.bold()),
+                    Scene::text(94_014_u64, focus_summary(model, ctx)).with_style(focus_style()),
+                ],
+            ),
         );
 
-        Scene::focus_scope_with_policy(
+        let workspace = Scene::focus_scope_with_policy(
             94_007_u64,
             "demo-root",
             FocusScopePolicy::Passthrough,
@@ -268,7 +496,9 @@ impl Machine for DemoMachine {
                     ),
                 ),
             ),
-        )
+        );
+
+        Scene::overlay(94_012_u64, vec![workspace, palette])
     }
 
     fn project(
@@ -293,9 +523,44 @@ impl Machine for DemoMachine {
         ctx: &Self::Context,
         layout: &crate::LayoutNode,
     ) -> Option<(u16, u16)> {
-        self.textarea
-            .cursor_position(&model.textarea, &(), &ctx.textarea, layout)
+        if model.palette.open {
+            self.palette
+                .cursor_position(&model.palette, &(), &ctx.palette, layout)
+        } else {
+            self.textarea
+                .cursor_position(&model.textarea, &(), &ctx.textarea, layout)
+        }
     }
+}
+
+fn focus_style() -> Style {
+    Style::PLAIN.fg(Color::Ansi(6)).bold().underlined()
+}
+
+fn focus_summary(model: &DemoState, ctx: &DemoContext) -> String {
+    let focus_label = match model.focused.as_ref().and_then(FocusPath::current) {
+        Some(id) if id == ctx.tabs.tab_base_id || (90_100_u64..90_200_u64).contains(&id.get()) => {
+            "tabs"
+        }
+        Some(id) if id == ctx.toggle.label_id || id == ctx.toggle.box_id => "shared-mode toggle",
+        Some(id) if id == ctx.button.label_id => "sync button",
+        Some(id)
+            if id == ctx.textarea.root_id
+                || id == ctx.textarea.content_id
+                || (93_100_u64..94_000_u64).contains(&id.get()) =>
+        {
+            "notes editor"
+        }
+        Some(id) if id == ctx.palette.input.root_id || id == ctx.palette.input.field_id => {
+            "palette input"
+        }
+        Some(id) if (20_100_u64..20_200_u64).contains(&id.get()) => "palette list",
+        Some(_) if model.palette.open => "task list / modal",
+        Some(_) => "task list",
+        None => "none",
+    };
+
+    format!("focused: {focus_label}  cursor: {:?}", model.cursor)
 }
 
 fn render_demo_item(item: &String, selected: bool) -> Scene<()> {
@@ -310,7 +575,7 @@ fn render_demo_item(item: &String, selected: bool) -> Scene<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{RenderOp, Runtime, layout::Rect};
+    use crate::{InputMsg, RenderOp, Runtime, layout::Rect};
 
     #[test]
     fn demo_machine_renders_workspace_sections() {
@@ -341,5 +606,70 @@ mod tests {
         assert!(runtime.model().status.contains("shared:true"));
         assert!(runtime.model().status.contains("syncs:1"));
         assert!(runtime.model().status.contains("note:h"));
+        assert!(runtime.model().status.contains("palette:false"));
+    }
+
+    #[test]
+    fn demo_machine_can_overlay_command_palette() {
+        let machine = DemoMachine::new();
+        let mut runtime = Runtime::new(machine, DemoContext::default(), ());
+
+        runtime.send(DemoMsg::OpenPalette);
+        runtime.send(DemoMsg::Palette(CommandPaletteMsg::Input(
+            InputMsg::Insert('s'),
+        )));
+
+        let ops = runtime.render_ops(Rect::new(0, 0, 80, 24));
+        assert!(runtime.model().palette.open);
+        assert!(ops.iter().any(|op| matches!(op, RenderOp::DrawText { content, .. } if content.contains("committed:<none>"))));
+        assert!(
+            ops.iter().any(
+                |op| matches!(op, RenderOp::DrawText { content, .. } if content.contains("s"))
+            )
+        );
+    }
+
+    #[test]
+    fn palette_commit_drives_demo_actions() {
+        let machine = DemoMachine::new();
+        let mut runtime = Runtime::new(machine, DemoContext::default(), ());
+
+        runtime.send(DemoMsg::OpenPalette);
+        for ch in "sync".chars() {
+            runtime.send(DemoMsg::Palette(CommandPaletteMsg::Input(
+                InputMsg::Insert(ch),
+            )));
+        }
+        runtime.send(DemoMsg::Palette(CommandPaletteMsg::List(ListMsg::Commit(
+            0,
+        ))));
+
+        assert_eq!(runtime.model().button.activations, 1);
+        assert!(!runtime.model().palette.open);
+
+        runtime.send(DemoMsg::OpenPalette);
+        for ch in "notes".chars() {
+            runtime.send(DemoMsg::Palette(CommandPaletteMsg::Input(
+                InputMsg::Insert(ch),
+            )));
+        }
+        runtime.send(DemoMsg::Palette(CommandPaletteMsg::List(ListMsg::Commit(
+            0,
+        ))));
+
+        assert_eq!(runtime.model().tabs.selected, 1);
+        assert_eq!(runtime.model().tabs.committed, Some(1));
+
+        runtime.send(DemoMsg::OpenPalette);
+        for ch in "toggle".chars() {
+            runtime.send(DemoMsg::Palette(CommandPaletteMsg::Input(
+                InputMsg::Insert(ch),
+            )));
+        }
+        runtime.send(DemoMsg::Palette(CommandPaletteMsg::List(ListMsg::Commit(
+            0,
+        ))));
+
+        assert!(runtime.model().toggle.checked);
     }
 }

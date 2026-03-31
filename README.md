@@ -70,13 +70,27 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo test --all-features
 ```
 
-Run the current demo snapshot binary with:
+Run the current raw-key interactive demo host with:
 
 ```bash
 cargo run
 ```
 
-The current binary prints a rendered snapshot of a composed Knopper demo workspace built from the standard machines.
+Optional Notcurses-backed rendering during the raw host:
+
+```bash
+cargo run --features notcurses -- --notcurses
+```
+
+If you want the older command-driven shell instead, use:
+
+```bash
+cargo run -- --shell
+```
+
+Note: `--shell` is a diagnostic command driver, not a fullscreen TUI. It prints the command list plus a textual snapshot/debug view of the demo state.
+
+The raw-key host is the actual interactive terminal demo. It renders a composed Knopper workspace built from the standard machines and supports direct raw-key interaction, including focus traversal, textarea editing, list navigation, and command-palette activation via `Ctrl-P`.
 
 ## Contributor guidance
 
@@ -89,6 +103,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for workflow and coding guidelines.
 - [docs/guides/03-focus-and-modal-semantics.md](docs/guides/03-focus-and-modal-semantics.md)
 - [docs/guides/04-scene-layout-render-pipeline.md](docs/guides/04-scene-layout-render-pipeline.md)
 - [docs/guides/05-walkthrough-demo-workspace.md](docs/guides/05-walkthrough-demo-workspace.md)
+- [docs/guides/06-running-the-interactive-demo.md](docs/guides/06-running-the-interactive-demo.md)
 
 ## Architecture
 
