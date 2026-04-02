@@ -91,12 +91,19 @@ where
     #[must_use]
     pub fn cursor(&self, bounds: Rect) -> Option<(u16, u16)> {
         let layout = self.layout(bounds);
-        self.machine.cursor_position(
-            &self.model.sample(),
-            &self.shared.sample(),
-            &self.ctx,
-            &layout,
-        )
+        self.machine
+            .cursor_position(
+                &self.model.sample(),
+                &self.shared.sample(),
+                &self.ctx,
+                &layout,
+            )
+            .map(|(x, y)| {
+                (
+                    x.min(bounds.width.saturating_sub(1)),
+                    y.min(bounds.height.saturating_sub(1)),
+                )
+            })
     }
 
     #[must_use]

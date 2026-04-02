@@ -1,6 +1,6 @@
 use crate::{
-    Effect, FocusState, KeyEvent, LayoutNode, Machine, NodeId, Scene, SceneBehavior,
-    SizeConstraint, child_has_focus, dispatch_if_focused, modal_key_msg, modal_scene,
+    Color, Effect, FocusState, KeyEvent, LayoutNode, Machine, NodeId, Scene, SceneBehavior,
+    SizeConstraint, Style, child_has_focus, dispatch_if_focused, modal_key_msg, modal_scene,
     project_child,
     standard::{
         input::{InputContext, InputMachine, InputMsg, InputState},
@@ -338,9 +338,11 @@ impl Machine for CommandPaletteMachine {
                 Scene::sized(
                     30_202_u64,
                     SizeConstraint::width(ctx.width),
-                    Scene::column(30_200_u64, vec![body, detail]),
+                    Scene::column(30_200_u64, vec![body, detail])
+                        .with_style(Style::PLAIN.bg(Color::Ansi(0))),
                 ),
-            ),
+            )
+            .with_style(Style::PLAIN.bg(Color::Ansi(0))),
         )
         .map_msg(&|msg| match msg {
             ModalMsg::Inner(inner) => inner,

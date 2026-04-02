@@ -25,6 +25,8 @@ pub struct DemoState {
     pub palette: CommandPaletteState,
     pub focused: Option<FocusPath>,
     pub cursor: Option<(u16, u16)>,
+    pub last_input: Option<String>,
+    pub bounds: Option<(u16, u16)>,
     pub status: String,
 }
 
@@ -50,6 +52,8 @@ pub enum DemoMsg {
     Palette(CommandPaletteMsg),
     FocusChanged(Option<FocusPath>),
     CursorChanged(Option<(u16, u16)>),
+    InspectInput(String),
+    InspectBounds((u16, u16)),
     OpenPalette,
 }
 
@@ -256,21 +260,14 @@ impl DemoMachine {
             .as_deref()
             .unwrap_or("<draft>")
             .replace('\n', " | ");
-        let focus = model
-            .focused
-            .as_ref()
-            .and_then(FocusPath::current)
-            .map(|id| format!("{:?}", id))
-            .unwrap_or_else(|| "none".into());
         model.status = format!(
-            "tab:{active_tab} shared:{} syncs:{} note:{} selected-task:{} palette:{} palette-commit:{:?} focus:{focus} cursor:{:?}",
+            "tab:{active_tab} shared:{} syncs:{} note:{} task:{} palette:{} commit:{:?}",
             model.toggle.checked,
             model.button.activations,
             committed,
             model.list.selected,
             model.palette.open,
             model.palette.committed,
-            model.cursor
         );
     }
 }
@@ -351,6 +348,14 @@ impl Machine for DemoMachine {
             }
             DemoMsg::CursorChanged(position) => {
                 model.cursor = position;
+                Effect::None
+            }
+            DemoMsg::InspectInput(input) => {
+                model.last_input = Some(input);
+                Effect::None
+            }
+            DemoMsg::InspectBounds(bounds) => {
+                model.bounds = Some(bounds);
                 Effect::None
             }
             DemoMsg::OpenPalette => {
@@ -523,18 +528,31 @@ impl Machine for DemoMachine {
         ctx: &Self::Context,
         layout: &crate::LayoutNode,
     ) -> Option<(u16, u16)> {
-        if model.palette.open {
-            self.palette
-                .cursor_position(&model.palette, &(), &ctx.palette, layout)
+        let mut focus = FocusState::new();
+        if let Some(path) = model.focused.clone() {
+            focus.set(path);
         } else {
+            return None;
+        }
+
+        if model.palette.open {
+            if child_has_focus(&focus, self.palette.input_root_id(&ctx.palette)) {
+                self.palette
+                    .cursor_position(&model.palette, &(), &ctx.palette, layout)
+            } else {
+                None
+            }
+        } else if child_has_focus(&focus, self.textarea.root_id(&ctx.textarea)) {
             self.textarea
                 .cursor_position(&model.textarea, &(), &ctx.textarea, layout)
+        } else {
+            None
         }
     }
 }
 
 fn focus_style() -> Style {
-    Style::PLAIN.fg(Color::Ansi(6)).bold().underlined()
+    Style::PLAIN.fg(Color::Ansi(6)).bold()
 }
 
 fn focus_summary(model: &DemoState, ctx: &DemoContext) -> String {
@@ -560,7 +578,18 @@ fn focus_summary(model: &DemoState, ctx: &DemoContext) -> String {
         None => "none",
     };
 
-    format!("focused: {focus_label}  cursor: {:?}", model.cursor)
+    let bounds = model
+        .bounds
+        .map(|(w, h)| format!("{w}x{h}"))
+        .unwrap_or_else(|| "?x?".into());
+    let cursor = model
+        .cursor
+        .map(|(x, y)| format!("{x},{y}"))
+        .unwrap_or_else(|| "hidden".into());
+    format!(
+        "focus:{focus_label} cursor:{cursor} bounds:{bounds} input:{}",
+        model.last_input.as_deref().unwrap_or("<none>")
+    )
 }
 
 fn render_demo_item(item: &String, selected: bool) -> Scene<()> {

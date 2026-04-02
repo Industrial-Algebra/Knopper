@@ -139,7 +139,7 @@ impl Machine for TabsMachine {
                         format!("[{label}]")
                     };
                     let style = if selected {
-                        Style::PLAIN.bold().underlined()
+                        Style::PLAIN.bold()
                     } else {
                         Style::PLAIN
                     };

@@ -5,6 +5,9 @@ use crossterm::{
     terminal::{self, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use knopper::{DemoContext, DemoMachine, Key, KeyEvent, Rect, RenderOp, Runtime, RuntimeEvent};
+
+#[cfg(feature = "notcurses")]
+use notcurses::{Input as NcInput, Key as NcKey, Received as NcReceived};
 use std::io::{self, Write};
 
 #[cfg(feature = "notcurses")]
@@ -26,6 +29,10 @@ fn main() {
     let mut runtime = Runtime::new(DemoMachine::new(), ctx.clone(), ());
     runtime.dispatch(RuntimeEvent::Focus(ctx.tabs.tab_base_id));
     sync_demo_runtime_meta(&mut runtime, bounds);
+    runtime.send(knopper::DemoMsg::InspectBounds((
+        bounds.width,
+        bounds.height,
+    )));
 
     #[cfg(feature = "notcurses")]
     let mut backend = if use_notcurses {
@@ -123,21 +130,43 @@ fn run_raw_host(
     #[allow(unused_variables)] mut backend: DemoBackend<'_>,
 ) -> io::Result<()> {
     let mut stdout = io::stdout();
-    terminal::enable_raw_mode()?;
-    execute!(stdout, EnterAlternateScreen)?;
+    let using_notcurses = backend.is_some();
+    if !using_notcurses {
+        terminal::enable_raw_mode()?;
+        execute!(stdout, EnterAlternateScreen)?;
+    }
 
     let mut help_visible = true;
     loop {
         refresh_raw_host_bounds(runtime, &mut ctx, &mut bounds);
         sync_demo_runtime_meta(runtime, bounds);
-        render_raw_frame(&mut stdout, runtime, bounds, help_visible)?;
+
         #[cfg(feature = "notcurses")]
         if let Some(backend) = backend.as_deref_mut() {
             render_notcurses(runtime, bounds, Some(backend));
+        } else {
+            render_raw_frame(&mut stdout, runtime, bounds, help_visible)?;
+        }
+
+        #[cfg(not(feature = "notcurses"))]
+        render_raw_frame(&mut stdout, runtime, bounds, help_visible)?;
+
+        #[cfg(feature = "notcurses")]
+        if let Some(backend) = backend.as_deref_mut() {
+            let input = backend
+                .read_event()
+                .map_err(|error| io::Error::other(error.to_string()))?;
+            if handle_notcurses_input(input, runtime, &mut ctx, &mut bounds, &mut help_visible) {
+                break;
+            }
+            continue;
         }
 
         match event::read()? {
             CtEvent::Key(key) if matches!(key.kind, KeyEventKind::Press | KeyEventKind::Repeat) => {
+                runtime.send(knopper::DemoMsg::InspectInput(summarize_crossterm_key(
+                    &key,
+                )));
                 if key.code == KeyCode::Char('q') && !key.modifiers.contains(KeyModifiers::CONTROL)
                 {
                     break;
@@ -165,9 +194,84 @@ fn run_raw_host(
         }
     }
 
-    execute!(stdout, LeaveAlternateScreen)?;
-    terminal::disable_raw_mode()?;
+    if !using_notcurses {
+        execute!(stdout, LeaveAlternateScreen)?;
+        terminal::disable_raw_mode()?;
+    }
     Ok(())
+}
+
+#[cfg(feature = "notcurses")]
+fn handle_notcurses_input(
+    input: NcInput,
+    runtime: &mut Runtime<DemoMachine>,
+    ctx: &mut DemoContext,
+    bounds: &mut Rect,
+    help_visible: &mut bool,
+) -> bool {
+    refresh_raw_host_bounds(runtime, ctx, bounds);
+
+    if input.is_release() {
+        return false;
+    }
+
+    runtime.send(knopper::DemoMsg::InspectInput(summarize_notcurses_input(
+        &input,
+    )));
+
+    if input.received == NcReceived::Char('?') {
+        *help_visible = !*help_visible;
+        return false;
+    }
+
+    if input.received == NcReceived::Char('q') && !input.keymod.has_ctrl() {
+        return true;
+    }
+
+    if input.received == NcReceived::Char('\u{1b}') && !runtime.model().palette.open {
+        return true;
+    }
+
+    if input.received == NcReceived::Key(NcKey::Resize) {
+        refresh_raw_host_bounds(runtime, ctx, bounds);
+        sync_demo_runtime_meta(runtime, *bounds);
+        return false;
+    }
+
+    if input.received == NcReceived::Key(NcKey::Esc) && !runtime.model().palette.open {
+        return true;
+    }
+
+    if let Some(mapped) = map_notcurses_key(input) {
+        handle_runtime_key(runtime, ctx, mapped);
+    }
+    false
+}
+
+#[cfg(feature = "notcurses")]
+fn map_notcurses_key(input: NcInput) -> Option<KeyEvent> {
+    let key = match input.received {
+        NcReceived::Char('\t') => Key::Tab,
+        NcReceived::Char('\u{1b}') => Key::Escape,
+        NcReceived::Char(ch) => Key::Char(ch),
+        NcReceived::Key(NcKey::Enter) => Key::Enter,
+        NcReceived::Key(NcKey::Esc) => Key::Escape,
+        NcReceived::Key(NcKey::Tab) => Key::Tab,
+        NcReceived::Key(NcKey::Backspace) => Key::Backspace,
+        NcReceived::Key(NcKey::Up) => Key::Up,
+        NcReceived::Key(NcKey::Down) => Key::Down,
+        NcReceived::Key(NcKey::Left) => Key::Left,
+        NcReceived::Key(NcKey::Right) => Key::Right,
+        NcReceived::Key(NcKey::Resize) | NcReceived::NoInput => return None,
+        _ => return None,
+    };
+
+    Some(KeyEvent {
+        key,
+        ctrl: input.keymod.has_ctrl(),
+        alt: input.keymod.has_alt(),
+        shift: input.keymod.has_shift(),
+    })
 }
 
 fn refresh_raw_host_bounds(
@@ -181,6 +285,9 @@ fn refresh_raw_host_bounds(
             *bounds = next;
             *ctx = DemoContext::for_bounds(next);
             runtime.set_context(ctx.clone());
+            runtime.send(knopper::DemoMsg::InspectInput(format!(
+                "resize:{width}x{height}"
+            )));
             runtime.dispatch(RuntimeEvent::Resize(knopper::ResizeEvent { width, height }));
         }
     }
@@ -195,9 +302,19 @@ fn sync_demo_runtime_meta(runtime: &mut Runtime<DemoMachine>, bounds: Rect) {
     if runtime.model().cursor != cursor {
         runtime.send(knopper::DemoMsg::CursorChanged(cursor));
     }
+    if runtime.model().bounds != Some((bounds.width, bounds.height)) {
+        runtime.send(knopper::DemoMsg::InspectBounds((
+            bounds.width,
+            bounds.height,
+        )));
+    }
 }
 
 fn handle_runtime_key(runtime: &mut Runtime<DemoMachine>, ctx: &DemoContext, key: KeyEvent) {
+    runtime.send(knopper::DemoMsg::InspectInput(format!(
+        "key:{}",
+        summarize_key_event(&key)
+    )));
     if matches!(key.key, Key::Tab) {
         runtime.dispatch(RuntimeEvent::Key(key));
         return;
@@ -210,6 +327,107 @@ fn handle_runtime_key(runtime: &mut Runtime<DemoMachine>, ctx: &DemoContext, key
         runtime.send(msg);
     } else {
         runtime.dispatch(RuntimeEvent::Key(key));
+    }
+}
+
+fn summarize_key_event(key: &KeyEvent) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    if key.ctrl {
+        parts.push("Ctrl".into());
+    }
+    if key.alt {
+        parts.push("Alt".into());
+    }
+    if key.shift {
+        parts.push("Shift".into());
+    }
+    let key_name = match key.key {
+        Key::Char(ch) => ch.to_string(),
+        Key::Enter => "Enter".into(),
+        Key::Escape => "Esc".into(),
+        Key::Tab => "Tab".into(),
+        Key::Backspace => "Backspace".into(),
+        Key::Up => "Up".into(),
+        Key::Down => "Down".into(),
+        Key::Left => "Left".into(),
+        Key::Right => "Right".into(),
+    };
+    parts.push(key_name);
+    parts.join("+")
+}
+
+fn summarize_crossterm_key(key: &crossterm::event::KeyEvent) -> String {
+    let mut mods = Vec::new();
+    if key.modifiers.contains(KeyModifiers::CONTROL) {
+        mods.push("Ctrl");
+    }
+    if key.modifiers.contains(KeyModifiers::ALT) {
+        mods.push("Alt");
+    }
+    if key.modifiers.contains(KeyModifiers::SHIFT) {
+        mods.push("Shift");
+    }
+    let code = match key.code {
+        KeyCode::Char(ch) => format!("{ch}"),
+        KeyCode::Enter => "Enter".into(),
+        KeyCode::Esc => "Esc".into(),
+        KeyCode::Tab => "Tab".into(),
+        KeyCode::BackTab => "BackTab".into(),
+        KeyCode::Backspace => "Backspace".into(),
+        KeyCode::Up => "Up".into(),
+        KeyCode::Down => "Down".into(),
+        KeyCode::Left => "Left".into(),
+        KeyCode::Right => "Right".into(),
+        _ => "Other".into(),
+    };
+    if mods.is_empty() {
+        format!("ct:{code}")
+    } else {
+        format!("ct:{}+{code}", mods.join("+"))
+    }
+}
+
+#[cfg(feature = "notcurses")]
+fn summarize_notcurses_input(input: &NcInput) -> String {
+    let received = match input.received {
+        NcReceived::NoInput => "NoInput".into(),
+        NcReceived::Char('\t') => "TabChar".into(),
+        NcReceived::Char('\u{1b}') => "EscChar".into(),
+        NcReceived::Char(ch) => ch.to_string(),
+        NcReceived::Key(NcKey::Enter) => "Enter".into(),
+        NcReceived::Key(NcKey::Esc) => "Esc".into(),
+        NcReceived::Key(NcKey::Tab) => "Tab".into(),
+        NcReceived::Key(NcKey::Backspace) => "Backspace".into(),
+        NcReceived::Key(NcKey::Up) => "Up".into(),
+        NcReceived::Key(NcKey::Down) => "Down".into(),
+        NcReceived::Key(NcKey::Left) => "Left".into(),
+        NcReceived::Key(NcKey::Right) => "Right".into(),
+        NcReceived::Key(NcKey::Resize) => "Resize".into(),
+        _ => "Other".into(),
+    };
+    let mut mods = Vec::new();
+    if input.keymod.has_ctrl() {
+        mods.push("Ctrl");
+    }
+    if input.keymod.has_alt() {
+        mods.push("Alt");
+    }
+    if input.keymod.has_shift() {
+        mods.push("Shift");
+    }
+    let ty = if input.is_repeat() {
+        "Repeat"
+    } else if input.is_release() {
+        "Release"
+    } else if input.is_press() {
+        "Press"
+    } else {
+        "Unknown"
+    };
+    if mods.is_empty() {
+        format!("nc:{received}:{ty}")
+    } else {
+        format!("nc:{}+{received}:{ty}", mods.join("+"))
     }
 }
 

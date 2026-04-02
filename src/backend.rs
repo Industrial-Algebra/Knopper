@@ -248,7 +248,7 @@ pub mod notcurses {
         layout::Rect,
         style::{Color, Style as KnopperStyle},
     };
-    use notcurses::{Notcurses, NotcursesError, Plane, Style as NcStyle};
+    use notcurses::{Input as NcInput, Notcurses, NotcursesError, Plane, Style as NcStyle};
     use std::collections::BTreeMap;
 
     #[derive(Debug)]
@@ -264,6 +264,7 @@ pub mod notcurses {
         surfaces: BTreeMap<NodeId, SurfaceRecord>,
         state: BackendState,
         command_log: Vec<BackendCommand>,
+        cursor_visible: bool,
     }
 
     impl NotcursesBackend {
@@ -276,6 +277,7 @@ pub mod notcurses {
                 surfaces: BTreeMap::new(),
                 state: BackendState::default(),
                 command_log: Vec::new(),
+                cursor_visible: false,
             })
         }
 
@@ -292,6 +294,10 @@ pub mod notcurses {
         #[must_use]
         pub fn surface_count(&self) -> usize {
             self.surfaces.len()
+        }
+
+        pub fn read_event(&self) -> Result<NcInput, NotcursesError> {
+            self.nc.get_event()
         }
 
         fn apply_style(plane: &mut Plane, style: KnopperStyle) {
@@ -369,6 +375,21 @@ pub mod notcurses {
             Ok(surface)
         }
 
+        fn fill_surface(
+            plane: &mut Plane,
+            rect: Rect,
+            style: KnopperStyle,
+        ) -> Result<(), NotcursesError> {
+            if style.bg.is_none() {
+                return Ok(());
+            }
+            let blank = " ".repeat(usize::from(rect.width.max(1)));
+            for y in 0..rect.height.max(1) {
+                plane.putstr_at((0_u32, u32::from(y)), &blank)?;
+            }
+            Ok(())
+        }
+
         fn draw_text(
             &mut self,
             id: NodeId,
@@ -378,6 +399,7 @@ pub mod notcurses {
         ) -> Result<(), NotcursesError> {
             let surface = self.ensure_surface(id, rect)?;
             Self::apply_style(&mut surface.plane, style);
+            Self::fill_surface(&mut surface.plane, rect, style)?;
             surface.plane.putstr_at((0_u32, 0_u32), content)?;
             surface.plane.move_top();
             Ok(())
@@ -391,6 +413,7 @@ pub mod notcurses {
         ) -> Result<(), NotcursesError> {
             let surface = self.ensure_surface(id, rect)?;
             Self::apply_style(&mut surface.plane, style);
+            Self::fill_surface(&mut surface.plane, rect, style)?;
             let w = u32::from(rect.width.max(2));
             let h = u32::from(rect.height.max(2));
 
@@ -435,25 +458,47 @@ pub mod notcurses {
 
         fn execute(&mut self, commands: &[BackendCommand]) -> Result<(), Self::Error> {
             for command in commands {
-                match command {
+                let result = match command {
                     BackendCommand::DrawText {
                         id,
                         rect,
                         content,
                         style,
-                    } => self.draw_text(*id, *rect, content, *style)?,
+                    } => self.draw_text(*id, *rect, content, *style),
                     BackendCommand::DrawBorder { id, rect, style } => {
-                        self.draw_border(*id, *rect, *style)?;
+                        self.draw_border(*id, *rect, *style)
                     }
                     BackendCommand::Annotate { id, rect, label } => {
-                        self.draw_annotation(*id, *rect, label)?;
+                        self.draw_annotation(*id, *rect, label)
                     }
                     BackendCommand::SetCursor { position, .. } => match position {
-                        Some((x, y)) => self.nc.cursor_enable((u32::from(*x), u32::from(*y)))?,
-                        None => self.nc.cursor_disable()?,
+                        Some((x, y)) => {
+                            let result = self.nc.cursor_enable((u32::from(*y), u32::from(*x)));
+                            if result.is_ok() {
+                                self.cursor_visible = true;
+                            }
+                            result
+                        }
+                        None => {
+                            if self.cursor_visible {
+                                self.cursor_visible = false;
+                                if let Err(error) = self.nc.cursor_disable() {
+                                    eprintln!("notcurses cursor disable ignored: {error}");
+                                }
+                            }
+                            Ok(())
+                        }
                     },
-                    BackendCommand::ClearRect { rect } => self.clear_rect(*rect)?,
-                    BackendCommand::ClearNode { id } => self.clear_node(*id),
+                    BackendCommand::ClearRect { rect } => self.clear_rect(*rect),
+                    BackendCommand::ClearNode { id } => {
+                        self.clear_node(*id);
+                        Ok(())
+                    }
+                };
+
+                if let Err(error) = result {
+                    eprintln!("notcurses command failed: {command:?}: {error}");
+                    return Err(error);
                 }
             }
 

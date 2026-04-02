@@ -248,7 +248,7 @@ where
                         .with_role(Role::ListItem);
 
                     if is_selected {
-                        scene = scene.with_style(Style::PLAIN.bold().underlined());
+                        scene = scene.with_style(Style::PLAIN.bold());
                     }
 
                     scene
@@ -390,19 +390,19 @@ mod tests {
                     id: machine.marker_id(0),
                     rect: Rect::new(0, 0, 1, 1),
                     content: ">".into(),
-                    style: Style::PLAIN.bold().underlined(),
+                    style: Style::PLAIN.bold(),
                 },
                 RenderOp::DrawText {
                     id: NodeId::new(305),
                     rect: Rect::new(1, 0, 5, 1),
                     content: "alpha".into(),
-                    style: Style::PLAIN.bold().underlined(),
+                    style: Style::PLAIN.bold(),
                 },
                 RenderOp::DrawText {
                     id: NodeId::new(405),
                     rect: Rect::new(6, 0, 11, 1),
                     content: " [selected]".into(),
-                    style: Style::PLAIN.bold().underlined(),
+                    style: Style::PLAIN.bold(),
                 },
                 RenderOp::DrawText {
                     id: machine.marker_id(1),
@@ -455,19 +455,19 @@ mod tests {
                     id: machine.marker_id(2),
                     rect: Rect::new(0, 1, 1, 1),
                     content: ">".into(),
-                    style: Style::PLAIN.bold().underlined(),
+                    style: Style::PLAIN.bold(),
                 },
                 RenderOp::DrawText {
                     id: NodeId::new(305),
                     rect: Rect::new(1, 1, 5, 1),
                     content: "gamma".into(),
-                    style: Style::PLAIN.bold().underlined(),
+                    style: Style::PLAIN.bold(),
                 },
                 RenderOp::DrawText {
                     id: NodeId::new(405),
                     rect: Rect::new(6, 1, 11, 1),
                     content: " [selected]".into(),
-                    style: Style::PLAIN.bold().underlined(),
+                    style: Style::PLAIN.bold(),
                 },
             ]
         );
