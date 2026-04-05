@@ -1,4 +1,6 @@
-use crate::{Effect, Key, KeyEvent, Machine, NodeId, Scene, SceneBehavior, SizeConstraint, Style};
+use crate::{
+    Color, Effect, Key, KeyEvent, Machine, NodeId, Scene, SceneBehavior, SizeConstraint, Style,
+};
 use cliffy_core::{Behavior, FromGeometric, GA3, IntoGeometric, behavior};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -96,9 +98,9 @@ impl Machine for ButtonMachine {
         ctx: &Self::Context,
     ) -> Scene<Self::Msg> {
         let style = if model.activations > 0 {
-            Style::PLAIN.bold()
+            Style::PLAIN.fg(Color::Ansi(2)).bold()
         } else {
-            Style::PLAIN
+            Style::PLAIN.fg(Color::Ansi(6)).bold()
         };
 
         Scene::border(
@@ -112,6 +114,11 @@ impl Machine for ButtonMachine {
                     .on_activate(ButtonMsg::Press),
             ),
         )
+        .with_style(Style::PLAIN.fg(if model.activations > 0 {
+            Color::Ansi(2)
+        } else {
+            Color::Ansi(8)
+        }))
     }
 
     fn project(

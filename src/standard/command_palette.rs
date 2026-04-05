@@ -1,7 +1,7 @@
 use crate::{
-    Color, Effect, FocusState, KeyEvent, LayoutNode, Machine, NodeId, Scene, SceneBehavior,
-    SizeConstraint, Style, child_has_focus, dispatch_if_focused, modal_key_msg, modal_scene,
-    project_child,
+    Color, Effect, FocusState, KeyEvent, LayoutNode, Machine, NodeId, Padding, Scene,
+    SceneBehavior, SizeConstraint, Style, child_has_focus, dispatch_if_focused, modal_key_msg,
+    modal_scene, project_child,
     standard::{
         input::{InputContext, InputMachine, InputMsg, InputState},
         list::{ListContext, ListMachine, ListMsg, ListState},
@@ -58,6 +58,7 @@ pub enum CommandPaletteMsg {
 pub struct CommandPaletteContext {
     pub items: Vec<String>,
     pub width: u16,
+    pub height: u16,
     pub list_height: u16,
     pub input: InputContext,
 }
@@ -67,6 +68,7 @@ impl Default for CommandPaletteContext {
         Self {
             items: Vec::new(),
             width: 32,
+            height: 10,
             list_height: 6,
             input: InputContext {
                 root_id: NodeId::new(30_000),
@@ -155,7 +157,23 @@ impl CommandPaletteMachine {
             30_299_u64,
             Self::MAIN_SCOPE,
             crate::FocusScopePolicy::Trap,
-            Scene::column(30_298_u64, vec![input_scene, list_scene]),
+            Scene::padding(
+                30_297_u64,
+                Padding::all(1),
+                Scene::column(
+                    30_298_u64,
+                    vec![
+                        Scene::text(30_296_u64, "Quick Actions")
+                            .with_style(Style::PLAIN.fg(Color::Ansi(6)).bold()),
+                        Scene::text(30_295_u64, "Filter actions · Enter run · Esc close")
+                            .with_style(Style::PLAIN.fg(Color::Ansi(8))),
+                        Scene::text(30_294_u64, ""),
+                        input_scene,
+                        Scene::text(30_293_u64, ""),
+                        list_scene,
+                    ],
+                ),
+            ),
         )
     }
 
@@ -327,22 +345,36 @@ impl Machine for CommandPaletteMachine {
                 .committed
                 .and_then(|index| ctx.items.get(index))
                 .map_or_else(
-                    || "committed:<none>".to_string(),
-                    |item| format!("committed:{item}"),
+                    || "last action: none".to_string(),
+                    |item| format!("last action: {item}"),
                 ),
+        )
+        .with_style(Style::PLAIN.fg(Color::Ansi(6)).bold());
+        let background_width = usize::from(ctx.width.saturating_sub(2).max(1));
+        let background_rows = usize::from(ctx.list_height).saturating_add(8).max(8);
+        let background = Scene::column(
+            30_150_u64,
+            (0..background_rows)
+                .map(|row| {
+                    Scene::text(
+                        NodeId::new(30_151_u64.saturating_add(u64::try_from(row).unwrap_or(0))),
+                        " ".repeat(background_width),
+                    )
+                    .with_style(Style::PLAIN.bg(Color::Ansi(0)))
+                })
+                .collect::<Vec<_>>(),
+        );
+        let content = Scene::stack(
+            30_199_u64,
+            vec![background, Scene::column(30_200_u64, vec![body, detail])],
         );
         modal_scene(
             Self::MODAL_IDS,
             Scene::border(
                 30_201_u64,
-                Scene::sized(
-                    30_202_u64,
-                    SizeConstraint::width(ctx.width),
-                    Scene::column(30_200_u64, vec![body, detail])
-                        .with_style(Style::PLAIN.bg(Color::Ansi(0))),
-                ),
+                Scene::sized(30_202_u64, SizeConstraint::width(ctx.width), content),
             )
-            .with_style(Style::PLAIN.bg(Color::Ansi(0))),
+            .with_style(Style::PLAIN.fg(Color::Ansi(6)).bg(Color::Ansi(0))),
         )
         .map_msg(&|msg| match msg {
             ModalMsg::Inner(inner) => inner,
@@ -638,7 +670,7 @@ mod tests {
             op,
             RenderOp::Annotate { label, .. } if label == "modal-backdrop"
         )));
-        assert_eq!(runtime.cursor(Rect::new(0, 0, 40, 12)), Some((5, 3)));
+        assert_eq!(runtime.cursor(Rect::new(0, 0, 40, 12)), Some((6, 7)));
         assert_eq!(activation_message(&scene, NodeId::new(20_001)), None);
     }
 }

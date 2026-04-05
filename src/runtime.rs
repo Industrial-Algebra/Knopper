@@ -9,6 +9,17 @@ use crate::{
 };
 use cliffy_core::{Behavior, FromGeometric, IntoGeometric, behavior};
 
+fn render_order_ids(ops: &[RenderOp]) -> Vec<NodeId> {
+    ops.iter()
+        .filter_map(|op| match op {
+            RenderOp::DrawText { id, .. }
+            | RenderOp::DrawBorder { id, .. }
+            | RenderOp::Annotate { id, .. } => Some(*id),
+            RenderOp::SetCursor { .. } => None,
+        })
+        .collect()
+}
+
 pub struct Runtime<M>
 where
     M: Machine,
@@ -129,6 +140,8 @@ where
         let patches = diff_render_ops(&self.last_render_ops, &next);
         let commands = backend_commands(&self.last_render_ops, &patches);
         backend.execute(&commands)?;
+        let order = render_order_ids(&next);
+        backend.sync_order(&order)?;
         self.last_render_ops = next;
         Ok(())
     }
@@ -147,6 +160,8 @@ where
             position: cursor,
         });
         backend.execute(&commands)?;
+        let order = render_order_ids(&next);
+        backend.sync_order(&order)?;
         self.last_render_ops = next;
         Ok(())
     }
@@ -157,6 +172,10 @@ where
         bounds: Rect,
     ) -> Result<(), B::Error> {
         self.render_to_backend_with_cursor(backend, bounds, self.cursor(bounds))
+    }
+
+    pub fn invalidate_render_state(&mut self) {
+        self.last_render_ops.clear();
     }
 
     pub fn dispatch(&mut self, event: RuntimeEvent) {

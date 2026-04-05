@@ -1,5 +1,6 @@
 use crate::{
-    Effect, Key, KeyEvent, Machine, NodeId, Role, Scene, SceneBehavior, SizeConstraint, Style,
+    Color, Effect, Key, KeyEvent, Machine, NodeId, Role, Scene, SceneBehavior, SizeConstraint,
+    Style,
 };
 use cliffy_core::{Behavior, FromGeometric, GA3, IntoGeometric, behavior};
 
@@ -106,9 +107,9 @@ impl Machine for ToggleMachine {
     ) -> Scene<Self::Msg> {
         let marker = if model.checked { "[x]" } else { "[ ]" };
         let style = if model.checked {
-            Style::PLAIN.bold()
+            Style::PLAIN.fg(Color::Ansi(2)).bold()
         } else {
-            Style::PLAIN
+            Style::PLAIN.fg(Color::Ansi(6)).bold()
         };
 
         Scene::border(
@@ -130,6 +131,11 @@ impl Machine for ToggleMachine {
                 ),
             ),
         )
+        .with_style(Style::PLAIN.fg(if model.checked {
+            Color::Ansi(2)
+        } else {
+            Color::Ansi(8)
+        }))
     }
 
     fn project(

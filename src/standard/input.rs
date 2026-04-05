@@ -1,6 +1,6 @@
 use crate::{
-    Effect, Key, KeyEvent, LayoutNode, Machine, NodeId, Role, Scene, SceneBehavior, SizeConstraint,
-    Style, find_node,
+    Color, Effect, Key, KeyEvent, LayoutNode, Machine, NodeId, Role, Scene, SceneBehavior,
+    SizeConstraint, Style, find_node,
 };
 use cliffy_core::{Behavior, FromGeometric, GA3, IntoGeometric, behavior};
 
@@ -143,12 +143,13 @@ impl Machine for InputMachine {
                     .with_role(Role::Editor)
                     .focusable()
                     .with_style(if model.value.is_empty() {
-                        Style::PLAIN
+                        Style::PLAIN.fg(Color::Ansi(8))
                     } else {
-                        Style::PLAIN.bold()
+                        Style::PLAIN.fg(Color::Ansi(6)).bold()
                     }),
             ),
         )
+        .with_style(Style::PLAIN.fg(Color::Ansi(8)))
     }
 
     fn project(

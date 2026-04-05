@@ -1,4 +1,4 @@
-use crate::{Effect, Key, KeyEvent, Machine, NodeId, Role, Scene, SceneBehavior, Style};
+use crate::{Color, Effect, Key, KeyEvent, Machine, NodeId, Role, Scene, SceneBehavior, Style};
 use cliffy_core::{Behavior, FromGeometric, GA3, IntoGeometric, behavior};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -138,8 +138,10 @@ impl Machine for TabsMachine {
                     } else {
                         format!("[{label}]")
                     };
-                    let style = if selected {
-                        Style::PLAIN.bold()
+                    let style = if committed {
+                        Style::PLAIN.fg(Color::Ansi(2)).bold()
+                    } else if selected {
+                        Style::PLAIN.fg(Color::Ansi(6)).bold()
                     } else {
                         Style::PLAIN
                     };

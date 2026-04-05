@@ -29,9 +29,9 @@ This mode:
 - redraws the workspace after each key event
 - uses the current terminal size as the demo bounds
 - updates bounds live on terminal resize
-- shows model state
-- shows focus state
-- shows cursor position
+- presents an app-like workspace with Notes and Tasks surfaces
+- supports a quick-actions palette for common workspace commands
+- can show focus/cursor/input diagnostics when the inspector is enabled
 
 ## Notcurses-backed raw host
 
@@ -59,10 +59,10 @@ The workspace includes:
 
 - tabs
 - a toggle
-- a button
-- a textarea
-- a task list
-- a command palette overlay
+- a sync button
+- a notes textarea surface
+- a task list surface
+- a quick-actions palette overlay
 - a derived status line
 
 This is the same demo described in:
@@ -107,7 +107,8 @@ Current raw-key host behavior includes:
 
 - `q` quits
 - `?` toggles the help hint
-- `Ctrl-P` opens the command palette
+- `Ctrl-P` opens the quick-actions palette
+- `Ctrl-G` or `F2` toggles the inspector
 - `Tab` / `Shift-Tab` traverse focus
 - arrow keys drive focused controls where appropriate
 - text entry inserts into the focused textarea or palette input
@@ -206,7 +207,7 @@ note down
 note commit
 ```
 
-This demonstrates the local-first textarea machine and the parent’s derived status behavior.
+This demonstrates the local-first textarea machine and the parent’s derived status behavior. Pressing the sync button also snapshots the current note into the saved status state so the footer reflects a more lifelike workspace flow.
 
 ## Shell-mode list commands
 
@@ -216,7 +217,7 @@ list down
 list commit
 ```
 
-These drive the task list selection and activation semantics.
+These drive the task list selection and activation semantics. The footer summarizes the currently selected task by name rather than by raw index.
 
 ## A quick sample session
 

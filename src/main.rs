@@ -138,7 +138,9 @@ fn run_raw_host(
 
     let mut help_visible = true;
     loop {
-        refresh_raw_host_bounds(runtime, &mut ctx, &mut bounds);
+        if refresh_raw_host_bounds(runtime, &mut ctx, &mut bounds) {
+            runtime.invalidate_render_state();
+        }
         sync_demo_runtime_meta(runtime, bounds);
 
         #[cfg(feature = "notcurses")]
@@ -198,6 +200,10 @@ fn run_raw_host(
         execute!(stdout, LeaveAlternateScreen)?;
         terminal::disable_raw_mode()?;
     }
+    #[cfg(feature = "notcurses")]
+    if let Some(backend) = backend {
+        let _ = knopper::TerminalBackend::shutdown(backend);
+    }
     Ok(())
 }
 
@@ -250,6 +256,15 @@ fn handle_notcurses_input(
 
 #[cfg(feature = "notcurses")]
 fn map_notcurses_key(input: NcInput) -> Option<KeyEvent> {
+    if input.received == NcReceived::Key(NcKey::F02) {
+        return Some(KeyEvent {
+            key: Key::Char('g'),
+            ctrl: true,
+            alt: false,
+            shift: false,
+        });
+    }
+
     let key = match input.received {
         NcReceived::Char('\t') => Key::Tab,
         NcReceived::Char('\u{1b}') => Key::Escape,
@@ -278,7 +293,7 @@ fn refresh_raw_host_bounds(
     runtime: &mut Runtime<DemoMachine>,
     ctx: &mut DemoContext,
     bounds: &mut Rect,
-) {
+) -> bool {
     if let Ok((width, height)) = terminal::size() {
         let next = Rect::new(0, 0, width, height);
         if *bounds != next {
@@ -289,8 +304,10 @@ fn refresh_raw_host_bounds(
                 "resize:{width}x{height}"
             )));
             runtime.dispatch(RuntimeEvent::Resize(knopper::ResizeEvent { width, height }));
+            return true;
         }
     }
+    false
 }
 
 fn sync_demo_runtime_meta(runtime: &mut Runtime<DemoMachine>, bounds: Rect) {
@@ -311,6 +328,10 @@ fn sync_demo_runtime_meta(runtime: &mut Runtime<DemoMachine>, bounds: Rect) {
 }
 
 fn handle_runtime_key(runtime: &mut Runtime<DemoMachine>, ctx: &DemoContext, key: KeyEvent) {
+    if key.ctrl && matches!(key.key, Key::Char('g') | Key::Char('G')) {
+        runtime.send(knopper::DemoMsg::ToggleInspector);
+        return;
+    }
     runtime.send(knopper::DemoMsg::InspectInput(format!(
         "key:{}",
         summarize_key_event(&key)
@@ -442,6 +463,14 @@ fn map_crossterm_key(code: KeyCode, modifiers: KeyModifiers) -> Option<KeyEvent>
         KeyCode::Down => Key::Down,
         KeyCode::Left => Key::Left,
         KeyCode::Right => Key::Right,
+        KeyCode::F(2) => {
+            return Some(KeyEvent {
+                key: Key::Char('g'),
+                ctrl: true,
+                alt: false,
+                shift: false,
+            });
+        }
         _ => return None,
     };
 
@@ -472,6 +501,10 @@ fn handle_command(
         return CommandResult::Help;
     }
     if line == "show" {
+        return CommandResult::Continue;
+    }
+    if line == "inspector" || line == "inspector toggle" {
+        runtime.send(knopper::DemoMsg::ToggleInspector);
         return CommandResult::Continue;
     }
 
@@ -586,6 +619,22 @@ fn handle_command(
             Some("backtab") => runtime.send(knopper::DemoMsg::Palette(knopper::CommandPaletteMsg::FocusInput)),
             Some(other) => return CommandResult::Error(format!("unknown palette command: {other}")),
             None => return CommandResult::Error("usage: palette open|close|focus-input|focus-list|text <text>|backspace|up|down|commit|tab|backtab".into()),
+        },
+        "inspector" => match parts.next() {
+            Some("on") => {
+                if !runtime.model().inspector_visible {
+                    runtime.send(knopper::DemoMsg::ToggleInspector);
+                }
+            }
+            Some("off") => {
+                if runtime.model().inspector_visible {
+                    runtime.send(knopper::DemoMsg::ToggleInspector);
+                }
+            }
+            Some("toggle") | None => runtime.send(knopper::DemoMsg::ToggleInspector),
+            Some(other) => {
+                return CommandResult::Error(format!("unknown inspector command: {other}"));
+            }
         },
         other => return CommandResult::Error(format!("unknown command: {other}")),
     }
@@ -753,7 +802,7 @@ fn render_raw_frame(
     if help_visible {
         writeln!(
             stdout,
-            "keys: q quit  ? help  Ctrl-P palette  Tab / Shift-Tab focus  arrows move  Enter commit/activate  Esc quit/close"
+            "keys: q quit  ? help  Ctrl-P palette  Ctrl-G/F2 inspector  Tab / Shift-Tab focus  arrows move  Enter commit/activate  Esc quit/close"
         )?;
     } else {
         writeln!(stdout, "press ? for key help")?;
@@ -781,7 +830,7 @@ fn render_notcurses(_runtime: &mut Runtime<DemoMachine>, _bounds: Rect, _backend
 
 fn print_shell_help() {
     println!(
-        "Commands:\n  show\n  help\n  quit\n  focus tabs|toggle|button|note|list|palette\n  tab\n  backtab\n  tabs left|right|commit|select <index>\n  toggle\n  sync\n  note text <text>\n  note nl\n  note backspace\n  note left|right|up|down\n  note commit\n  list up|down|commit\n  palette open|close\n  palette focus-input|focus-list\n  palette text <text>\n  palette backspace\n  palette up|down|commit\n  palette tab|backtab\n\nDefault run mode is raw-key interactive host. Use --shell for the old command shell. Use `cargo run --features notcurses -- --notcurses` to also render each frame through the Notcurses backend."
+        "Commands:\n  show\n  help\n  quit\n  inspector [on|off|toggle]\n  focus tabs|toggle|button|note|list|palette\n  tab\n  backtab\n  tabs left|right|commit|select <index>\n  toggle\n  sync\n  note text <text>\n  note nl\n  note backspace\n  note left|right|up|down\n  note commit\n  list up|down|commit\n  palette open|close\n  palette focus-input|focus-list\n  palette text <text>\n  palette backspace\n  palette up|down|commit\n  palette tab|backtab\n\nDefault run mode is raw-key interactive host. Use Ctrl-G or F2 to toggle the inspector. Use --shell for the old command shell. Use `cargo run --features notcurses -- --notcurses` to also render each frame through the Notcurses backend."
     );
 }
 
@@ -789,7 +838,7 @@ trait DemoListFocusExt {
     fn marker_base(&self) -> knopper::NodeId;
 }
 
-impl DemoListFocusExt for knopper::ListContext<String> {
+impl<Item> DemoListFocusExt for knopper::ListContext<Item> {
     fn marker_base(&self) -> knopper::NodeId {
         knopper::ListIds::default().marker_base
     }

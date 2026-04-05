@@ -138,6 +138,18 @@ pub trait TerminalBackend {
     type Error;
 
     fn execute(&mut self, commands: &[BackendCommand]) -> Result<(), Self::Error>;
+
+    fn sync_order(&mut self, _order: &[NodeId]) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    fn reset(&mut self) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    fn shutdown(&mut self) -> Result<(), Self::Error> {
+        Ok(())
+    }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -505,6 +517,34 @@ pub mod notcurses {
             self.root.render()?;
             self.command_log.extend_from_slice(commands);
             self.state.apply(commands);
+            Ok(())
+        }
+
+        fn sync_order(&mut self, order: &[NodeId]) -> Result<(), Self::Error> {
+            for id in order {
+                if let Some(surface) = self.surfaces.get_mut(id) {
+                    surface.plane.move_top();
+                }
+            }
+            self.root.render()?;
+            Ok(())
+        }
+
+        fn reset(&mut self) -> Result<(), Self::Error> {
+            self.surfaces.clear();
+            self.command_log.clear();
+            self.cursor_visible = false;
+            self.root.erase();
+            self.root.render()?;
+            Ok(())
+        }
+
+        fn shutdown(&mut self) -> Result<(), Self::Error> {
+            self.surfaces.clear();
+            self.cursor_visible = false;
+            self.root.erase();
+            let _ = self.nc.cursor_disable();
+            self.root.render()?;
             Ok(())
         }
     }

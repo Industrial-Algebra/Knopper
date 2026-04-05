@@ -90,7 +90,15 @@ cargo run -- --shell
 
 Note: `--shell` is a diagnostic command driver, not a fullscreen TUI. It prints the command list plus a textual snapshot/debug view of the demo state.
 
-The raw-key host is the actual interactive terminal demo. It renders a composed Knopper workspace built from the standard machines and supports direct raw-key interaction, including focus traversal, textarea editing, list navigation, and command-palette activation via `Ctrl-P`.
+The raw-key host is the actual interactive terminal demo. It renders a composed Knopper workspace built from the standard machines and supports direct raw-key interaction, including focus traversal, textarea editing, list navigation, quick-actions palette activation via `Ctrl-P`, and a toggleable inspector via `Ctrl-G` or `F2`.
+
+The current demo workspace is intentionally a little more app-like than a bare control gallery:
+
+- tabbed workspace header
+- shared-mode toggle and sync action row
+- sectioned Notes and Tasks surfaces
+- quick-actions modal for common workspace commands
+- derived status footer summarizing the current workspace state
 
 ## Contributor guidance
 

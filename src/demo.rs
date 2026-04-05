@@ -1,5 +1,5 @@
 use crate::{
-    Color, Effect, FocusPath, FocusScopePolicy, FocusState, Key, KeyEvent, Machine, Scene,
+    Color, Effect, FocusPath, FocusScopePolicy, FocusState, Key, KeyEvent, Machine, Padding, Scene,
     SceneBehavior, SizeConstraint, Style, child_has_focus, dispatch_if_focused, project_child,
     standard::{
         button::{ButtonContext, ButtonMachine, ButtonMsg, ButtonState},
@@ -22,11 +22,13 @@ pub struct DemoState {
     pub button: ButtonState,
     pub textarea: TextareaState,
     pub list: ListState,
+    pub task_done: Vec<bool>,
     pub palette: CommandPaletteState,
     pub focused: Option<FocusPath>,
     pub cursor: Option<(u16, u16)>,
     pub last_input: Option<String>,
     pub bounds: Option<(u16, u16)>,
+    pub inspector_visible: bool,
     pub status: String,
 }
 
@@ -54,7 +56,30 @@ pub enum DemoMsg {
     CursorChanged(Option<(u16, u16)>),
     InspectInput(String),
     InspectBounds((u16, u16)),
+    ToggleInspector,
     OpenPalette,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TaskPriority {
+    High,
+    Medium,
+    Low,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TaskItem {
+    pub title: String,
+    pub detail: String,
+    pub priority: TaskPriority,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TaskRow {
+    pub title: String,
+    pub detail: String,
+    pub priority: TaskPriority,
+    pub done: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -66,7 +91,7 @@ pub struct DemoContext {
     pub toggle: ToggleContext,
     pub button: ButtonContext,
     pub textarea: TextareaContext,
-    pub list: ListContext<String>,
+    pub list: ListContext<TaskItem>,
     pub palette: CommandPaletteContext,
 }
 
@@ -77,14 +102,20 @@ impl DemoContext {
         let workspace_width = bounds.width.saturating_sub(2).max(24);
         let workspace_height = bounds.height.saturating_sub(2).max(12);
         let body_width = workspace_width.saturating_sub(2).max(20);
-        let list_width = if body_width >= 48 {
-            24
+        let gutter = 2;
+        let list_width = if body_width >= 64 {
+            (body_width / 3).clamp(24, 30)
+        } else if body_width >= 48 {
+            22
         } else {
             (body_width / 3).max(14)
         };
-        let textarea_width = body_width.saturating_sub(list_width).max(12);
-        let editor_height = workspace_height.saturating_sub(8).clamp(4, 12);
-        let palette_width = body_width.clamp(20, 40);
+        let textarea_width = body_width
+            .saturating_sub(list_width)
+            .saturating_sub(gutter)
+            .max(12);
+        let editor_height = workspace_height.saturating_sub(10).clamp(5, 14);
+        let palette_width = body_width.clamp(28, 52);
 
         ctx.width = workspace_width;
         ctx.height = workspace_height;
@@ -93,8 +124,9 @@ impl DemoContext {
         ctx.textarea.height = editor_height;
         ctx.list.viewport_height = editor_height;
         ctx.palette.width = palette_width;
-        ctx.palette.list_height = workspace_height.saturating_sub(10).clamp(3, 6);
-        ctx.palette.input.width = palette_width.saturating_sub(2).max(10);
+        ctx.palette.height = workspace_height.saturating_sub(4).clamp(10, 14);
+        ctx.palette.list_height = workspace_height.saturating_sub(12).clamp(4, 8);
+        ctx.palette.input.width = palette_width.saturating_sub(4).max(10);
         ctx
     }
 }
@@ -115,13 +147,13 @@ impl Default for DemoContext {
                 box_id: 91_001_u64.into(),
                 label_id: 91_002_u64.into(),
                 width: 18,
-                label: "shared mode".into(),
+                label: "Shared mode".into(),
             },
             button: ButtonContext {
                 root_id: 92_000_u64.into(),
                 label_id: 92_001_u64.into(),
                 width: 14,
-                label: "sync now".into(),
+                label: "Sync workspace".into(),
             },
             textarea: TextareaContext {
                 root_id: 93_000_u64.into(),
@@ -133,20 +165,36 @@ impl Default for DemoContext {
             },
             list: ListContext {
                 items: vec![
-                    "agent review".into(),
-                    "sync presence".into(),
-                    "ship 0.1.0 demo".into(),
+                    TaskItem {
+                        title: "agent review".into(),
+                        detail: "Check notes and confirm machine boundaries".into(),
+                        priority: TaskPriority::High,
+                    },
+                    TaskItem {
+                        title: "sync presence".into(),
+                        detail: "Align local presence overlays with shared state seams".into(),
+                        priority: TaskPriority::Medium,
+                    },
+                    TaskItem {
+                        title: "ship 0.1.0 demo".into(),
+                        detail: "Polish the interactive workspace for the first release".into(),
+                        priority: TaskPriority::Low,
+                    },
                 ],
                 viewport_height: 8,
             },
             palette: CommandPaletteContext {
                 items: vec![
+                    "Open Overview".into(),
                     "Open Notes".into(),
+                    "Show Tasks".into(),
                     "Toggle Shared Mode".into(),
                     "Sync Workspace".into(),
-                    "Show Tasks".into(),
+                    "Draft Sync Note".into(),
+                    "Toggle Selected Task".into(),
                 ],
                 width: 36,
+                height: 10,
                 list_height: 5,
                 input: crate::InputContext {
                     root_id: 96_000_u64.into(),
@@ -159,7 +207,7 @@ impl Default for DemoContext {
     }
 }
 
-type DemoListMachine = ListMachine<String, (), fn(&String, bool) -> Scene<()>>;
+type DemoListMachine = ListMachine<TaskRow, (), fn(&TaskRow, bool) -> Scene<()>>;
 
 #[derive(Debug, Clone)]
 pub struct DemoMachine {
@@ -185,7 +233,7 @@ impl DemoMachine {
             toggle: ToggleMachine,
             button: ButtonMachine,
             textarea: TextareaMachine,
-            list: ListMachine::new(render_demo_item as fn(&String, bool) -> Scene<()>),
+            list: ListMachine::new(render_demo_item as fn(&TaskRow, bool) -> Scene<()>),
             palette: CommandPaletteMachine::new(),
         }
     }
@@ -226,23 +274,71 @@ impl DemoMachine {
         }
     }
 
+    fn task_list_context(&self, model: &DemoState, ctx: &DemoContext) -> ListContext<TaskRow> {
+        ListContext {
+            items: ctx
+                .list
+                .items
+                .iter()
+                .enumerate()
+                .map(|(index, item)| TaskRow {
+                    title: item.title.clone(),
+                    detail: item.detail.clone(),
+                    priority: item.priority.clone(),
+                    done: model.task_done.get(index).copied().unwrap_or(false),
+                })
+                .collect(),
+            viewport_height: ctx.list.viewport_height,
+        }
+    }
+
+    fn toggle_selected_task(&self, model: &mut DemoState, ctx: &DemoContext, index: usize) {
+        if index >= ctx.list.items.len() {
+            return;
+        }
+        if model.task_done.len() < ctx.list.items.len() {
+            model.task_done.resize(ctx.list.items.len(), false);
+        }
+        if let Some(done) = model.task_done.get_mut(index) {
+            *done = !*done;
+        }
+    }
+
     fn apply_palette_command(&self, model: &mut DemoState, ctx: &DemoContext, index: usize) {
         match ctx.palette.items.get(index).map(String::as_str) {
+            Some("Open Overview") => {
+                model.tabs.selected = 0;
+                model.tabs.committed = Some(0);
+            }
             Some("Open Notes") => {
                 model.tabs.selected = 1;
                 model.tabs.committed = Some(1);
-            }
-            Some("Toggle Shared Mode") => {
-                model.toggle.checked = !model.toggle.checked;
-            }
-            Some("Sync Workspace") => {
-                model.button.activations = model.button.activations.saturating_add(1);
             }
             Some("Show Tasks") => {
                 model.tabs.selected = 2;
                 model.tabs.committed = Some(2);
                 model.list.selected = 0;
                 model.list.scroll = 0;
+            }
+            Some("Toggle Selected Task") => {
+                self.toggle_selected_task(model, ctx, model.list.selected);
+            }
+            Some("Toggle Shared Mode") => {
+                model.toggle.checked = !model.toggle.checked;
+            }
+            Some("Sync Workspace") => {
+                model.button.activations = model.button.activations.saturating_add(1);
+                model.textarea.committed = Some(model.textarea.value.clone());
+            }
+            Some("Draft Sync Note") => {
+                model.tabs.selected = 1;
+                model.tabs.committed = Some(1);
+                model.textarea.value =
+                    "Synced workspace updates:\n- review notes\n- confirm tasks\n- share status"
+                        .into();
+                model.textarea.cursor_row = 2;
+                model.textarea.cursor_col = 14;
+                model.textarea.preferred_col = Some(14);
             }
             _ => {}
         }
@@ -254,20 +350,52 @@ impl DemoMachine {
             .labels
             .get(model.tabs.selected)
             .map_or("<none>", String::as_str);
-        let committed = model
-            .textarea
-            .committed
-            .as_deref()
-            .unwrap_or("<draft>")
-            .replace('\n', " | ");
+        let active_task = ctx.list.items.get(model.list.selected).map_or_else(
+            || "none".to_string(),
+            |item| {
+                let done = model
+                    .task_done
+                    .get(model.list.selected)
+                    .copied()
+                    .unwrap_or(false);
+                let priority = match item.priority {
+                    TaskPriority::High => "high",
+                    TaskPriority::Medium => "med",
+                    TaskPriority::Low => "low",
+                };
+                format!(
+                    "{}{} ({priority})",
+                    if done { "done " } else { "" },
+                    item.title
+                )
+            },
+        );
+        let note_state = match model.textarea.committed.as_deref() {
+            Some(value) if value == model.textarea.value => {
+                let compact = value.replace('\n', " | ");
+                if compact.is_empty() {
+                    "empty".to_string()
+                } else {
+                    format!("saved:{compact}")
+                }
+            }
+            Some(_) | None if model.textarea.value.is_empty() => "empty".to_string(),
+            Some(_) => "draft edits".to_string(),
+            None => "draft".to_string(),
+        };
+        let shared_mode = if model.toggle.checked {
+            "shared"
+        } else {
+            "local"
+        };
         model.status = format!(
-            "tab:{active_tab} shared:{} syncs:{} note:{} task:{} palette:{} commit:{:?}",
-            model.toggle.checked,
+            "{active_tab} · {shared_mode} · syncs {} · notes {note_state} · task {active_task}{}",
             model.button.activations,
-            committed,
-            model.list.selected,
-            model.palette.open,
-            model.palette.committed,
+            if model.palette.open {
+                " · quick actions"
+            } else {
+                ""
+            },
         );
     }
 }
@@ -281,6 +409,7 @@ impl Machine for DemoMachine {
     fn init(&self, ctx: &Self::Context) -> Self::Model {
         let mut state = DemoState {
             status: String::new(),
+            task_done: vec![false; ctx.list.items.len()],
             palette: CommandPaletteState {
                 open: false,
                 ..self.palette.init(&ctx.palette)
@@ -308,13 +437,20 @@ impl Machine for DemoMachine {
                 &ctx.toggle,
                 &DemoMsg::Toggle,
             ),
-            DemoMsg::Button(msg) => update_child(
-                &self.button,
-                &mut model.button,
-                msg,
-                &ctx.button,
-                &DemoMsg::Button,
-            ),
+            DemoMsg::Button(msg) => {
+                let activations_before = model.button.activations;
+                let effect = update_child(
+                    &self.button,
+                    &mut model.button,
+                    msg,
+                    &ctx.button,
+                    &DemoMsg::Button,
+                );
+                if model.button.activations != activations_before {
+                    model.textarea.committed = Some(model.textarea.value.clone());
+                }
+                effect
+            }
             DemoMsg::Textarea(msg) => update_child(
                 &self.textarea,
                 &mut model.textarea,
@@ -323,7 +459,11 @@ impl Machine for DemoMachine {
                 &DemoMsg::Textarea,
             ),
             DemoMsg::List(msg) => {
-                update_child(&self.list, &mut model.list, msg, &ctx.list, &DemoMsg::List)
+                if let ListMsg::Commit(index) = msg {
+                    self.toggle_selected_task(model, ctx, index);
+                }
+                let list_ctx = self.task_list_context(model, ctx);
+                update_child(&self.list, &mut model.list, msg, &list_ctx, &DemoMsg::List)
             }
             DemoMsg::Palette(msg) => {
                 let committed_before = model.palette.committed;
@@ -358,6 +498,10 @@ impl Machine for DemoMachine {
                 model.bounds = Some(bounds);
                 Effect::None
             }
+            DemoMsg::ToggleInspector => {
+                model.inspector_visible = !model.inspector_visible;
+                Effect::None
+            }
             DemoMsg::OpenPalette => {
                 model.palette.open = true;
                 model.palette.filtered = ctx
@@ -389,8 +533,14 @@ impl Machine for DemoMachine {
             focus.set(path);
         }
 
+        let tabs_focused = child_has_focus(&focus, self.tabs.root_id(&ctx.tabs));
+        let toggle_focused = child_has_focus(&focus, self.toggle.root_id(&ctx.toggle));
+        let button_focused = child_has_focus(&focus, self.button.root_id(&ctx.button));
+        let notes_focused = child_has_focus(&focus, self.textarea.root_id(&ctx.textarea));
+        let tasks_focused = child_has_focus(&focus, self.list.root_id());
+
         let tabs = project_child(&self.tabs, &model.tabs, &(), &ctx.tabs, &DemoMsg::Tabs)
-            .with_style(if child_has_focus(&focus, self.tabs.root_id(&ctx.tabs)) {
+            .with_style(if tabs_focused {
                 focus_style()
             } else {
                 Style::PLAIN
@@ -402,13 +552,11 @@ impl Machine for DemoMachine {
             &ctx.toggle,
             &DemoMsg::Toggle,
         )
-        .with_style(
-            if child_has_focus(&focus, self.toggle.root_id(&ctx.toggle)) {
-                focus_style()
-            } else {
-                Style::PLAIN
-            },
-        );
+        .with_style(if toggle_focused {
+            focus_style()
+        } else {
+            Style::PLAIN
+        });
         let button = project_child(
             &self.button,
             &model.button,
@@ -416,13 +564,11 @@ impl Machine for DemoMachine {
             &ctx.button,
             &DemoMsg::Button,
         )
-        .with_style(
-            if child_has_focus(&focus, self.button.root_id(&ctx.button)) {
-                focus_style()
-            } else {
-                Style::PLAIN
-            },
-        );
+        .with_style(if button_focused {
+            focus_style()
+        } else {
+            Style::PLAIN
+        });
         let textarea = project_child(
             &self.textarea,
             &model.textarea,
@@ -430,15 +576,14 @@ impl Machine for DemoMachine {
             &ctx.textarea,
             &DemoMsg::Textarea,
         )
-        .with_style(
-            if child_has_focus(&focus, self.textarea.root_id(&ctx.textarea)) {
-                focus_style()
-            } else {
-                Style::PLAIN
-            },
-        );
-        let list = project_child(&self.list, &model.list, &(), &ctx.list, &DemoMsg::List)
-            .with_style(if child_has_focus(&focus, self.list.root_id()) {
+        .with_style(if notes_focused {
+            focus_style()
+        } else {
+            Style::PLAIN
+        });
+        let list_ctx = self.task_list_context(model, ctx);
+        let list = project_child(&self.list, &model.list, &(), &list_ctx, &DemoMsg::List)
+            .with_style(if tasks_focused {
                 focus_style()
             } else {
                 Style::PLAIN
@@ -451,31 +596,114 @@ impl Machine for DemoMachine {
             &DemoMsg::Palette,
         );
 
-        let controls = Scene::row(94_000_u64, vec![toggle, button]);
-        let body = Scene::row(
-            94_001_u64,
-            vec![
-                Scene::sized(
-                    94_002_u64,
-                    SizeConstraint::width(ctx.textarea.width),
-                    textarea,
-                ),
-                Scene::sized(
-                    94_003_u64,
-                    SizeConstraint::width(ctx.list_width),
-                    Scene::border(94_004_u64, list),
-                ),
-            ],
+        let controls = Scene::padding(
+            94_000_u64,
+            Padding {
+                top: 1,
+                right: 0,
+                bottom: 0,
+                left: 0,
+            },
+            Scene::row(
+                94_015_u64,
+                vec![toggle, Scene::text(94_016_u64, "  "), button],
+            ),
         );
-        let status = Scene::border(
-            94_005_u64,
-            Scene::column(
-                94_013_u64,
+        let notes_pane = Scene::border(
+            94_020_u64,
+            Scene::padding(
+                94_024_u64,
+                Padding::all(1),
+                Scene::column(
+                    94_025_u64,
+                    vec![
+                        Scene::text(94_021_u64, "Notes")
+                            .with_style(section_title_style(notes_focused)),
+                        Scene::text(
+                            94_026_u64,
+                            if notes_focused {
+                                "Editing shared draft"
+                            } else {
+                                "Shared notes surface"
+                            },
+                        )
+                        .with_style(Style::PLAIN.fg(Color::Ansi(8))),
+                        textarea,
+                    ],
+                ),
+            ),
+        )
+        .with_style(surface_style(notes_focused));
+        let tasks_pane = Scene::border(
+            94_022_u64,
+            Scene::padding(
+                94_027_u64,
+                Padding::all(1),
+                Scene::column(
+                    94_028_u64,
+                    vec![
+                        Scene::text(94_023_u64, "Tasks")
+                            .with_style(section_title_style(tasks_focused)),
+                        Scene::text(
+                            94_029_u64,
+                            if tasks_focused {
+                                "Navigate and commit tasks"
+                            } else {
+                                "Focus to triage work"
+                            },
+                        )
+                        .with_style(Style::PLAIN.fg(Color::Ansi(8))),
+                        Scene::border(94_004_u64, list).with_style(if tasks_focused {
+                            focus_style()
+                        } else {
+                            Style::PLAIN.fg(Color::Ansi(8))
+                        }),
+                    ],
+                ),
+            ),
+        )
+        .with_style(surface_style(tasks_focused));
+        let body = Scene::padding(
+            94_001_u64,
+            Padding {
+                top: 1,
+                right: 0,
+                bottom: 0,
+                left: 0,
+            },
+            Scene::row(
+                94_017_u64,
                 vec![
-                    Scene::text(94_006_u64, model.status.clone()).with_style(Style::PLAIN.bold()),
-                    Scene::text(94_014_u64, focus_summary(model, ctx)).with_style(focus_style()),
+                    Scene::sized(
+                        94_002_u64,
+                        SizeConstraint::width(ctx.textarea.width),
+                        notes_pane,
+                    ),
+                    Scene::text(94_018_u64, "  "),
+                    Scene::sized(
+                        94_003_u64,
+                        SizeConstraint::width(ctx.list_width),
+                        tasks_pane,
+                    ),
                 ],
             ),
+        );
+        let mut status_children =
+            vec![Scene::text(94_006_u64, model.status.clone()).with_style(Style::PLAIN.bold())];
+        if model.inspector_visible {
+            status_children
+                .push(Scene::text(94_014_u64, focus_summary(model, ctx)).with_style(focus_style()));
+        }
+        let status = Scene::padding(
+            94_019_u64,
+            Padding {
+                top: 1,
+                right: 0,
+                bottom: 0,
+                left: 0,
+            },
+            Scene::border(94_005_u64, Scene::column(94_013_u64, status_children))
+                .with_style(Style::PLAIN.fg(Color::Ansi(8))),
         );
 
         let workspace = Scene::focus_scope_with_policy(
@@ -492,7 +720,7 @@ impl Machine for DemoMachine {
                         vec![
                             Scene::text(94_011_u64, "Knopper Demo Workspace")
                                 .with_role(crate::Role::Header)
-                                .with_style(Style::PLAIN.bold()),
+                                .with_style(Style::PLAIN.fg(Color::Ansi(6)).bold()),
                             tabs,
                             controls,
                             body,
@@ -555,6 +783,22 @@ fn focus_style() -> Style {
     Style::PLAIN.fg(Color::Ansi(6)).bold()
 }
 
+fn surface_style(active: bool) -> Style {
+    if active {
+        Style::PLAIN.fg(Color::Ansi(6)).bold()
+    } else {
+        Style::PLAIN.fg(Color::Ansi(8))
+    }
+}
+
+fn section_title_style(active: bool) -> Style {
+    if active {
+        Style::PLAIN.fg(Color::Ansi(6)).bold()
+    } else {
+        Style::PLAIN.fg(Color::Ansi(7)).bold()
+    }
+}
+
 fn focus_summary(model: &DemoState, ctx: &DemoContext) -> String {
     let focus_label = match model.focused.as_ref().and_then(FocusPath::current) {
         Some(id) if id == ctx.tabs.tab_base_id || (90_100_u64..90_200_u64).contains(&id.get()) => {
@@ -592,13 +836,27 @@ fn focus_summary(model: &DemoState, ctx: &DemoContext) -> String {
     )
 }
 
-fn render_demo_item(item: &String, selected: bool) -> Scene<()> {
-    let content = if selected {
-        format!("> {item}")
-    } else {
-        format!("  {item}")
+fn render_demo_item(item: &TaskRow, selected: bool) -> Scene<()> {
+    let status = if item.done { "[x]" } else { "[ ]" };
+    let priority = match item.priority {
+        TaskPriority::High => "high",
+        TaskPriority::Medium => "med",
+        TaskPriority::Low => "low",
     };
-    Scene::text(item.len() as u64 + 95_000, content)
+    let content = if selected {
+        format!("> {status} {} · {priority} · {}", item.title, item.detail)
+    } else {
+        format!("  {status} {} · {priority} · {}", item.title, item.detail)
+    };
+    Scene::text(item.title.len() as u64 + 95_000, content).with_style(if item.done {
+        Style::PLAIN.fg(Color::Ansi(2)).bold()
+    } else {
+        match item.priority {
+            TaskPriority::High => Style::PLAIN.fg(Color::Ansi(1)).bold(),
+            TaskPriority::Medium => Style::PLAIN.fg(Color::Ansi(3)).bold(),
+            TaskPriority::Low => Style::PLAIN.fg(Color::Ansi(6)),
+        }
+    })
 }
 
 #[cfg(test)]
@@ -631,11 +889,11 @@ mod tests {
         runtime.send(DemoMsg::Textarea(TextareaMsg::Insert('h')));
         runtime.send(DemoMsg::Textarea(TextareaMsg::Commit));
 
-        assert!(runtime.model().status.contains("tab:Notes"));
-        assert!(runtime.model().status.contains("shared:true"));
-        assert!(runtime.model().status.contains("syncs:1"));
-        assert!(runtime.model().status.contains("note:h"));
-        assert!(runtime.model().status.contains("palette:false"));
+        assert!(runtime.model().status.contains("Notes"));
+        assert!(runtime.model().status.contains("shared"));
+        assert!(runtime.model().status.contains("syncs 1"));
+        assert!(runtime.model().status.contains("saved:h"));
+        assert!(!runtime.model().status.contains("palette"));
     }
 
     #[test]
@@ -650,7 +908,7 @@ mod tests {
 
         let ops = runtime.render_ops(Rect::new(0, 0, 80, 24));
         assert!(runtime.model().palette.open);
-        assert!(ops.iter().any(|op| matches!(op, RenderOp::DrawText { content, .. } if content.contains("committed:<none>"))));
+        assert!(ops.iter().any(|op| matches!(op, RenderOp::DrawText { content, .. } if content.contains("last action: none"))));
         assert!(
             ops.iter().any(
                 |op| matches!(op, RenderOp::DrawText { content, .. } if content.contains("s"))
