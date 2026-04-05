@@ -219,6 +219,10 @@ In the current demo, that pattern is promoted a step further through reusable pa
 
 These are not standard machines yet, but they demonstrate a practical intermediate layer between raw scene nodes and full reusable machines.
 
+For a short focused guide on this extracted helper layer, see:
+
+- [07-reusable-composition-patterns.md](07-reusable-composition-patterns.md)
+
 ## Scene structure of the workspace
 
 At a high level, the demo scene is built from:

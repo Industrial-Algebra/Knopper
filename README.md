@@ -115,6 +115,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for workflow and coding guidelines.
 - [docs/guides/04-scene-layout-render-pipeline.md](docs/guides/04-scene-layout-render-pipeline.md)
 - [docs/guides/05-walkthrough-demo-workspace.md](docs/guides/05-walkthrough-demo-workspace.md)
 - [docs/guides/06-running-the-interactive-demo.md](docs/guides/06-running-the-interactive-demo.md)
+- [docs/guides/07-reusable-composition-patterns.md](docs/guides/07-reusable-composition-patterns.md)
 
 ## Architecture
 
