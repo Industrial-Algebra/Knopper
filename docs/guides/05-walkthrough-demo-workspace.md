@@ -51,6 +51,7 @@ The demo workspace currently composes these standard machines:
 And adds parent-level derived state:
 
 - a status line summarizing the workspace state
+- participant-local collaboration cues projected into the Notes and Tasks surfaces
 
 Conceptually, the workspace looks like this:
 
@@ -210,6 +211,14 @@ Each child scene is projected into the parent message space, then assembled into
 
 This is one of the core Knopper composition patterns.
 
+In the current demo, that pattern is promoted a step further through reusable parent-level composition helpers in `src/demo.rs`:
+
+- `surface_panel(...)` for a framed titled surface with shared chrome
+- `presence_strip(...)` for participant-local collaboration cues
+- `labeled_value(...)` for structured detail rows
+
+These are not standard machines yet, but they demonstrate a practical intermediate layer between raw scene nodes and full reusable machines.
+
 ## Scene structure of the workspace
 
 At a high level, the demo scene is built from:
@@ -231,8 +240,25 @@ The controls row contains:
 
 The body row contains:
 
-- textarea on the left
-- bordered task list on the right
+- a Notes surface on the left
+- a Tasks surface on the right
+
+Each surface is itself composed from reusable scene helpers rather than being hand-built inline every time.
+
+The Notes surface includes:
+
+- title
+- subtitle
+- participant-local presence strip
+- textarea body
+
+The Tasks surface includes:
+
+- title
+- subtitle
+- participant-local presence strip
+- structured task list
+- structured selected-task detail pane
 
 ### Root wrapping
 

@@ -341,11 +341,25 @@ pub mod notcurses {
         }
 
         fn clear_rect(&mut self, rect: Rect) -> Result<(), NotcursesError> {
+            let (cols, rows): (u32, u32) = self.root.size().into();
+            let max_y = u16::try_from(rows).unwrap_or(u16::MAX);
+            let max_x = u16::try_from(cols).unwrap_or(u16::MAX);
+
+            if rect.x >= max_x || rect.y >= max_y {
+                return Ok(());
+            }
+
+            let width = rect.width.min(max_x.saturating_sub(rect.x));
+            let height = rect.height.min(max_y.saturating_sub(rect.y));
+            if width == 0 || height == 0 {
+                return Ok(());
+            }
+
             self.root.erase_region(
                 Some(u32::from(rect.x)),
                 Some(u32::from(rect.y)),
-                i32::from(rect.width),
-                i32::from(rect.height),
+                i32::from(width),
+                i32::from(height),
             )?;
             Ok(())
         }

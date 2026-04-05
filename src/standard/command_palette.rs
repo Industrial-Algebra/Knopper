@@ -1,5 +1,5 @@
 use crate::{
-    Color, Effect, FocusState, KeyEvent, LayoutNode, Machine, NodeId, Padding, Scene,
+    Color, Effect, FocusState, KeyEvent, LayoutNode, ListIds, Machine, NodeId, Padding, Scene,
     SceneBehavior, SizeConstraint, Style, child_has_focus, dispatch_if_focused, modal_key_msg,
     modal_scene, project_child,
     standard::{
@@ -106,7 +106,15 @@ impl CommandPaletteMachine {
     pub fn new() -> Self {
         Self {
             input: InputMachine,
-            list: ListMachine::new(render_palette_item as PaletteRowRenderer),
+            list: ListMachine::new(render_palette_item as PaletteRowRenderer).with_ids(ListIds {
+                root: NodeId::new(20_100),
+                viewport: NodeId::new(20_101),
+                scroll: NodeId::new(20_102),
+                column: NodeId::new(20_103),
+                empty: NodeId::new(20_104),
+                item_base: NodeId::new(20_200),
+                marker_base: NodeId::new(20_300),
+            }),
         }
     }
 
@@ -513,8 +521,8 @@ mod tests {
         let mut list_focus = FocusState::new();
         list_focus.set(FocusPath::from_vec(vec![
             CommandPaletteMachine::MODAL_IDS.root,
-            NodeId::new(10_000),
-            NodeId::new(12_000),
+            NodeId::new(20_100),
+            NodeId::new(20_300),
         ]));
         assert_eq!(
             machine.key_msg(
@@ -542,9 +550,9 @@ mod tests {
             order.as_slice(),
             &[
                 NodeId::new(30_001),
-                NodeId::new(12_000),
-                NodeId::new(12_001),
-                NodeId::new(12_002),
+                NodeId::new(20_300),
+                NodeId::new(20_301),
+                NodeId::new(20_302),
             ]
         );
     }

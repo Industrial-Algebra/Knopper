@@ -1,6 +1,11 @@
 use crate::{
     Color, Effect, FocusPath, FocusScopePolicy, FocusState, Key, KeyEvent, Machine, Padding, Scene,
-    SceneBehavior, SizeConstraint, Style, child_has_focus, dispatch_if_focused, project_child,
+    SceneBehavior, SizeConstraint, Style, child_has_focus,
+    demo_ui::{
+        PresenceCue, PresenceTone, focus_style, labeled_value, presence_strip, surface_panel,
+        truncated_wrapped_lines,
+    },
+    dispatch_if_focused, project_child,
     standard::{
         button::{ButtonContext, ButtonMachine, ButtonMsg, ButtonState},
         command_palette::{
@@ -103,26 +108,33 @@ impl DemoContext {
         let workspace_height = bounds.height.saturating_sub(2).max(12);
         let body_width = workspace_width.saturating_sub(2).max(20);
         let gutter = 2;
-        let list_width = if body_width >= 64 {
+        let pane_chrome = 4;
+        let editor_chrome = 2;
+        let list_inner_width = if body_width >= 64 {
             (body_width / 3).clamp(24, 30)
         } else if body_width >= 48 {
             22
         } else {
             (body_width / 3).max(14)
         };
-        let textarea_width = body_width
-            .saturating_sub(list_width)
+        let notes_pane_width = body_width
+            .saturating_sub(list_inner_width.saturating_add(pane_chrome))
             .saturating_sub(gutter)
+            .max(12 + pane_chrome + editor_chrome);
+        let textarea_width = notes_pane_width
+            .saturating_sub(pane_chrome)
+            .saturating_sub(editor_chrome)
             .max(12);
         let editor_height = workspace_height.saturating_sub(10).clamp(5, 14);
+        let task_list_height = editor_height.saturating_sub(5).clamp(3, 9);
         let palette_width = body_width.clamp(28, 52);
 
         ctx.width = workspace_width;
         ctx.height = workspace_height;
-        ctx.list_width = list_width;
+        ctx.list_width = list_inner_width.saturating_add(pane_chrome);
         ctx.textarea.width = textarea_width;
         ctx.textarea.height = editor_height;
-        ctx.list.viewport_height = editor_height;
+        ctx.list.viewport_height = task_list_height;
         ctx.palette.width = palette_width;
         ctx.palette.height = workspace_height.saturating_sub(4).clamp(10, 14);
         ctx.palette.list_height = workspace_height.saturating_sub(12).clamp(4, 8);
@@ -609,60 +621,68 @@ impl Machine for DemoMachine {
                 vec![toggle, Scene::text(94_016_u64, "  "), button],
             ),
         );
-        let notes_pane = Scene::border(
+        let notes_pane = surface_panel(
             94_020_u64,
-            Scene::padding(
-                94_024_u64,
-                Padding::all(1),
-                Scene::column(
-                    94_025_u64,
-                    vec![
-                        Scene::text(94_021_u64, "Notes")
-                            .with_style(section_title_style(notes_focused)),
-                        Scene::text(
-                            94_026_u64,
-                            if notes_focused {
-                                "Editing shared draft"
-                            } else {
-                                "Shared notes surface"
-                            },
-                        )
-                        .with_style(Style::PLAIN.fg(Color::Ansi(8))),
-                        textarea,
-                    ],
+            ctx.textarea.width.saturating_add(2),
+            "Notes",
+            if notes_focused {
+                "Editing shared draft"
+            } else {
+                "Shared notes surface"
+            },
+            &notes_presence_cues(notes_focused),
+            textarea,
+            notes_focused,
+        );
+        let selected_task = ctx.list.items.get(model.list.selected).map(|item| TaskRow {
+            title: item.title.clone(),
+            detail: item.detail.clone(),
+            priority: item.priority.clone(),
+            done: model
+                .task_done
+                .get(model.list.selected)
+                .copied()
+                .unwrap_or(false),
+        });
+        let task_list_body = Scene::column(
+            94_028_u64,
+            vec![
+                Scene::sized(
+                    94_032_u64,
+                    SizeConstraint::width(ctx.list_width.saturating_sub(4)),
+                    Scene::border(94_004_u64, list).with_style(if tasks_focused {
+                        focus_style()
+                    } else {
+                        Style::PLAIN.fg(Color::Ansi(8))
+                    }),
                 ),
-            ),
-        )
-        .with_style(surface_style(notes_focused));
-        let tasks_pane = Scene::border(
+                Scene::border(
+                    94_033_u64,
+                    Scene::sized(
+                        94_034_u64,
+                        SizeConstraint::width(ctx.list_width.saturating_sub(6)),
+                        task_detail_scene(
+                            selected_task.as_ref(),
+                            ctx.list_width.saturating_sub(14),
+                        ),
+                    ),
+                )
+                .with_style(Style::PLAIN.fg(Color::Ansi(8))),
+            ],
+        );
+        let tasks_pane = surface_panel(
             94_022_u64,
-            Scene::padding(
-                94_027_u64,
-                Padding::all(1),
-                Scene::column(
-                    94_028_u64,
-                    vec![
-                        Scene::text(94_023_u64, "Tasks")
-                            .with_style(section_title_style(tasks_focused)),
-                        Scene::text(
-                            94_029_u64,
-                            if tasks_focused {
-                                "Navigate and commit tasks"
-                            } else {
-                                "Focus to triage work"
-                            },
-                        )
-                        .with_style(Style::PLAIN.fg(Color::Ansi(8))),
-                        Scene::border(94_004_u64, list).with_style(if tasks_focused {
-                            focus_style()
-                        } else {
-                            Style::PLAIN.fg(Color::Ansi(8))
-                        }),
-                    ],
-                ),
-            ),
-        )
-        .with_style(surface_style(tasks_focused));
+            ctx.list_width.saturating_sub(4),
+            "Tasks",
+            if tasks_focused {
+                "Navigate and commit tasks"
+            } else {
+                "Focus to triage work"
+            },
+            &task_presence_cues(selected_task.as_ref()),
+            task_list_body,
+            tasks_focused,
+        );
         let body = Scene::padding(
             94_001_u64,
             Padding {
@@ -676,13 +696,16 @@ impl Machine for DemoMachine {
                 vec![
                     Scene::sized(
                         94_002_u64,
-                        SizeConstraint::width(ctx.textarea.width),
+                        SizeConstraint::width(ctx.textarea.width.saturating_add(6)),
                         notes_pane,
                     ),
                     Scene::text(94_018_u64, "  "),
                     Scene::sized(
                         94_003_u64,
-                        SizeConstraint::width(ctx.list_width),
+                        SizeConstraint::new(
+                            Some(ctx.list_width),
+                            Some(ctx.textarea.height.saturating_add(9)),
+                        ),
                         tasks_pane,
                     ),
                 ],
@@ -779,24 +802,43 @@ impl Machine for DemoMachine {
     }
 }
 
-fn focus_style() -> Style {
-    Style::PLAIN.fg(Color::Ansi(6)).bold()
+fn notes_presence_cues(active: bool) -> Vec<PresenceCue> {
+    vec![
+        PresenceCue {
+            name: "you",
+            label: if active { "editing" } else { "drafting" },
+            tone: PresenceTone::Local,
+        },
+        PresenceCue {
+            name: "mika",
+            label: "reviewing",
+            tone: PresenceTone::Collaborator,
+        },
+        PresenceCue {
+            name: "rhea",
+            label: "synced",
+            tone: PresenceTone::Passive,
+        },
+    ]
 }
 
-fn surface_style(active: bool) -> Style {
-    if active {
-        Style::PLAIN.fg(Color::Ansi(6)).bold()
-    } else {
-        Style::PLAIN.fg(Color::Ansi(8))
-    }
-}
-
-fn section_title_style(active: bool) -> Style {
-    if active {
-        Style::PLAIN.fg(Color::Ansi(6)).bold()
-    } else {
-        Style::PLAIN.fg(Color::Ansi(7)).bold()
-    }
+fn task_presence_cues(task: Option<&TaskRow>) -> Vec<PresenceCue> {
+    vec![
+        PresenceCue {
+            name: "ava",
+            label: if task.is_some_and(|task| task.done) {
+                "verifying"
+            } else {
+                "triaging"
+            },
+            tone: PresenceTone::Collaborator,
+        },
+        PresenceCue {
+            name: "noah",
+            label: "tracking",
+            tone: PresenceTone::Passive,
+        },
+    ]
 }
 
 fn focus_summary(model: &DemoState, ctx: &DemoContext) -> String {
@@ -816,7 +858,7 @@ fn focus_summary(model: &DemoState, ctx: &DemoContext) -> String {
         Some(id) if id == ctx.palette.input.root_id || id == ctx.palette.input.field_id => {
             "palette input"
         }
-        Some(id) if (20_100_u64..20_200_u64).contains(&id.get()) => "palette list",
+        Some(id) if (20_100_u64..20_400_u64).contains(&id.get()) => "palette list",
         Some(_) if model.palette.open => "task list / modal",
         Some(_) => "task list",
         None => "none",
@@ -836,27 +878,138 @@ fn focus_summary(model: &DemoState, ctx: &DemoContext) -> String {
     )
 }
 
+fn task_detail_scene(task: Option<&TaskRow>, detail_width: u16) -> Scene<DemoMsg> {
+    match task {
+        Some(task) => Scene::column(
+            95_400_u64,
+            vec![
+                Scene::text(95_401_u64, "Selected Task")
+                    .with_style(Style::PLAIN.fg(Color::Ansi(7)).bold()),
+                presence_strip(
+                    95_408_u64,
+                    &[PresenceCue {
+                        name: "lia",
+                        label: if task.done { "confirmed" } else { "watching" },
+                        tone: PresenceTone::Collaborator,
+                    }],
+                ),
+                labeled_value(
+                    95_402_u64,
+                    "state",
+                    if task.done { "done" } else { "active" }.into(),
+                    if task.done {
+                        Style::PLAIN.fg(Color::Ansi(2)).bold()
+                    } else {
+                        task_priority_style(&task.priority)
+                    },
+                ),
+                labeled_value(
+                    95_403_u64,
+                    "priority",
+                    match task.priority {
+                        TaskPriority::High => "high".into(),
+                        TaskPriority::Medium => "medium".into(),
+                        TaskPriority::Low => "low".into(),
+                    },
+                    task_priority_style(&task.priority),
+                ),
+                labeled_value(
+                    95_404_u64,
+                    "title",
+                    task.title.clone(),
+                    Style::PLAIN.fg(Color::Ansi(7)).bold(),
+                ),
+                Scene::column(
+                    95_405_u64,
+                    std::iter::once(
+                        Scene::text(95_406_u64, "detail:")
+                            .with_style(Style::PLAIN.fg(Color::Ansi(8)).bold()),
+                    )
+                    .chain(
+                        truncated_wrapped_lines(&task.detail, detail_width, 2)
+                            .into_iter()
+                            .enumerate()
+                            .map(|(index, line)| {
+                                Scene::text(
+                                    95_407_u64
+                                        .saturating_add(u64::try_from(index).unwrap_or(u64::MAX)),
+                                    format!("  {line}"),
+                                )
+                                .with_style(Style::PLAIN.fg(Color::Ansi(8)))
+                            }),
+                    )
+                    .collect::<Vec<_>>(),
+                ),
+            ],
+        ),
+        None => Scene::column(
+            95_500_u64,
+            vec![
+                Scene::text(95_501_u64, "Selected Task")
+                    .with_style(Style::PLAIN.fg(Color::Ansi(7)).bold()),
+                Scene::text(95_502_u64, "No task selected")
+                    .with_style(Style::PLAIN.fg(Color::Ansi(8))),
+            ],
+        ),
+    }
+}
+
 fn render_demo_item(item: &TaskRow, selected: bool) -> Scene<()> {
-    let status = if item.done { "[x]" } else { "[ ]" };
-    let priority = match item.priority {
-        TaskPriority::High => "high",
-        TaskPriority::Medium => "med",
-        TaskPriority::Low => "low",
-    };
-    let content = if selected {
-        format!("> {status} {} · {priority} · {}", item.title, item.detail)
-    } else {
-        format!("  {status} {} · {priority} · {}", item.title, item.detail)
-    };
-    Scene::text(item.title.len() as u64 + 95_000, content).with_style(if item.done {
+    let base = 95_000_u64.saturating_add(
+        u64::try_from(item.title.len())
+            .unwrap_or(u64::MAX)
+            .saturating_mul(10),
+    );
+    let status_style = if item.done {
         Style::PLAIN.fg(Color::Ansi(2)).bold()
     } else {
-        match item.priority {
-            TaskPriority::High => Style::PLAIN.fg(Color::Ansi(1)).bold(),
-            TaskPriority::Medium => Style::PLAIN.fg(Color::Ansi(3)).bold(),
-            TaskPriority::Low => Style::PLAIN.fg(Color::Ansi(6)),
-        }
-    })
+        Style::PLAIN.fg(Color::Ansi(8)).bold()
+    };
+    let title_style = if item.done {
+        Style::PLAIN.fg(Color::Ansi(2)).bold()
+    } else if selected {
+        Style::PLAIN.fg(Color::Ansi(3)).bold()
+    } else {
+        Style::PLAIN.fg(Color::Ansi(7)).bold()
+    };
+
+    Scene::column(
+        base,
+        vec![
+            Scene::row(
+                base.saturating_add(1),
+                vec![
+                    Scene::text(
+                        base.saturating_add(2),
+                        if item.done { "[x]" } else { "[ ]" },
+                    )
+                    .with_style(status_style),
+                    Scene::text(base.saturating_add(3), " "),
+                    Scene::text(base.saturating_add(4), item.title.clone()).with_style(title_style),
+                    Scene::text(base.saturating_add(5), "  "),
+                    Scene::text(
+                        base.saturating_add(6),
+                        match item.priority {
+                            TaskPriority::High => "HIGH",
+                            TaskPriority::Medium => "MED",
+                            TaskPriority::Low => "LOW",
+                        },
+                    )
+                    .with_style(task_priority_style(&item.priority)),
+                ],
+            ),
+            Scene::text(base.saturating_add(7), format!("    {}", item.detail))
+                .with_style(Style::PLAIN.fg(Color::Ansi(8))),
+        ],
+    )
+}
+
+fn task_priority_style(priority: &TaskPriority) -> Style {
+    match priority {
+        TaskPriority::High => Style::PLAIN.fg(Color::Ansi(1)).bold(),
+        TaskPriority::Medium => Style::PLAIN.fg(Color::Ansi(3)).bold(),
+        TaskPriority::Low => Style::PLAIN.fg(Color::Ansi(6)).bold(),
+    }
 }
 
 #[cfg(test)]
@@ -875,7 +1028,15 @@ mod tests {
             |op| matches!(op, RenderOp::DrawText { content, .. } if content.contains("[Overview]"))
         ));
         assert!(ops.iter().any(|op| matches!(op, RenderOp::DrawText { content, .. } if content == "Write shared notes...")));
+        assert!(
+            ops.iter().any(
+                |op| matches!(op, RenderOp::DrawText { content, .. } if content.contains("you"))
+            )
+        );
         assert!(ops.iter().any(|op| matches!(op, RenderOp::DrawText { content, .. } if content.contains("agent review"))));
+        assert!(ops.iter().any(
+            |op| matches!(op, RenderOp::DrawText { content, .. } if content == "Selected Task")
+        ));
     }
 
     #[test]

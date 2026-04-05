@@ -97,8 +97,11 @@ The current demo workspace is intentionally a little more app-like than a bare c
 - tabbed workspace header
 - shared-mode toggle and sync action row
 - sectioned Notes and Tasks surfaces
+- participant-local collaboration cues in notes/tasks detail areas
 - quick-actions modal for common workspace commands
 - derived status footer summarizing the current workspace state
+
+It also now serves as a stronger composition template: the demo uses reusable scene-building helpers for framed surfaces, presence strips, and labeled detail rows so downstream applications can follow the same parent-machine composition style.
 
 ## Contributor guidance
 

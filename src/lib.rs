@@ -2,6 +2,7 @@ pub mod annotation;
 pub mod backend;
 pub mod compose;
 pub mod demo;
+pub mod demo_ui;
 pub mod diff;
 pub mod effect;
 pub mod focus;
