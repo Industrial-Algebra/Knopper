@@ -38,17 +38,48 @@ Current helpers include:
 
 - `PresenceTone`
 - `PresenceCue`
+- `PanelFill`
 - `focus_style()`
 - `surface_style()`
 - `section_title_style()`
 - `presence_style()`
 - `presence_strip(...)`
+- `panel_header(...)`
+- `panel_background(...)`
+- `panel_chrome(...)`
 - `surface_panel(...)`
+- `surface_panel_with_fill(...)`
+- `bounded_surface_panel(...)`
+- `bounded_surface_panel_with_fill(...)`
+- `split_columns(...)`
+- `master_detail(...)`
+- `app_shell(...)`
 - `labeled_value(...)`
 - `wrap_text_lines(...)`
 - `truncated_wrapped_lines(...)`
 
 ## Pattern 1: framed app surfaces
+
+The newer `bounded_surface_panel(...)` helper is the preferred first-pass primitive when a panel needs an explicit height contract and a clipped body region.
+
+Under the hood, panels now separate into:
+
+- `panel_header(...)`
+- `panel_chrome(...)`
+
+This separation makes it easier to evolve panel fills, panel background treatments, and future Notcurses-native panel effects.
+
+The richer fill variants are intentionally lightweight and text-cell-native for now, but they already let demos differentiate between calmer writing surfaces and more structured browsing/queue surfaces.
+
+Panel fills also react to focus state now: the configured fill acts as the panel's resting treatment, and active panels are automatically promoted to a stronger variant for clearer visual emphasis.
+
+Panel fill is now configurable via `PanelFill`, with the helper layer currently exposing:
+
+- `Plain`
+- `Grid`
+- `DenseGrid`
+- `Bands`
+- `Dots`
 
 Use `surface_panel(...)` when you want a consistent application surface with:
 
@@ -104,6 +135,7 @@ This is especially useful for:
 - task/detail panes
 - inspector-style metadata rows
 - future participant-local overlays
+- future header-local animation or presence effects
 
 ## Pattern 3: structured detail rows
 
@@ -128,7 +160,26 @@ priority: high
 
 because label and value remain separately styleable scene nodes.
 
-## Pattern 4: bounded text helpers
+## Pattern 4: split layouts and shells
+
+Two newer helpers support a first minimal application-layout layer:
+
+- `split_columns(...)`
+- `master_detail(...)`
+- `app_shell(...)`
+
+These are intentionally small, but they establish explicit contracts for:
+
+- left/right workspace splits
+- stacked list/detail regions inside a bounded slot
+- application title/header/body/footer shells
+- panel-local chrome and background treatment
+
+They are an initial step toward the broader application-layout direction described in:
+
+- [../architecture/06-application-layout-patterns.md](../architecture/06-application-layout-patterns.md)
+
+## Pattern 5: bounded text helpers
 
 `wrap_text_lines(...)` and `truncated_wrapped_lines(...)` are useful for detail panes that should:
 
@@ -210,6 +261,24 @@ The extracted `demo_ui` helpers demonstrate a practical layering strategy:
 3. full reusable machines
 
 That layering lets applications stay readable while keeping the machine abstraction focused on truly stateful semantic processes.
+
+## Second demo usage
+
+A second demo binary now uses these helpers in a different workspace shape:
+
+```bash
+cargo run --bin review_demo
+```
+
+That demo combines:
+
+- a review queue surface
+- a draft reply surface
+- shared panel chrome via `surface_panel(...)`
+- participant-local cues via `presence_strip(...)`
+- structured detail rows via `labeled_value(...)`
+
+This gives the extracted helper layer a second real consumer, which is useful for refining the patterns before promoting them further.
 
 ## Related guides
 

@@ -4,7 +4,10 @@ use crossterm::{
     execute,
     terminal::{self, Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use knopper::{DemoContext, DemoMachine, Key, KeyEvent, Rect, RenderOp, Runtime, RuntimeEvent};
+use knopper::{
+    DemoContext, DemoMachine, Key, KeyEvent, Rect, RenderOp, ReviewDemoContext, ReviewDemoMachine,
+    ReviewDemoMsg, Runtime, RuntimeEvent,
+};
 
 #[cfg(feature = "notcurses")]
 use notcurses::{Input as NcInput, Key as NcKey, Received as NcReceived};
@@ -22,17 +25,13 @@ fn main() {
     let args: Vec<String> = std::env::args().collect();
     let use_notcurses = args.iter().any(|arg| arg == "--notcurses");
     let use_shell = args.iter().any(|arg| arg == "--shell");
+    let selected_demo = args
+        .windows(2)
+        .find_map(|pair| (pair[0] == "--demo").then_some(pair[1].as_str()))
+        .unwrap_or("workspace");
 
     let initial_size = terminal::size().unwrap_or((80, 24));
     let bounds = Rect::new(0, 0, initial_size.0, initial_size.1);
-    let ctx = DemoContext::for_bounds(bounds);
-    let mut runtime = Runtime::new(DemoMachine::new(), ctx.clone(), ());
-    runtime.dispatch(RuntimeEvent::Focus(ctx.tabs.tab_base_id));
-    sync_demo_runtime_meta(&mut runtime, bounds);
-    runtime.send(knopper::DemoMsg::InspectBounds((
-        bounds.width,
-        bounds.height,
-    )));
 
     #[cfg(feature = "notcurses")]
     let mut backend = if use_notcurses {
@@ -52,35 +51,72 @@ fn main() {
         eprintln!("binary was not built with the `notcurses` feature; using stdout rendering only");
     }
 
-    if use_shell {
-        print_shell_help();
-        render_demo(&mut runtime, bounds);
-        #[cfg(feature = "notcurses")]
-        render_notcurses(&mut runtime, bounds, backend.as_mut());
-        run_shell(&ctx, bounds, &mut runtime, {
-            #[cfg(feature = "notcurses")]
-            {
-                backend.as_mut()
+    match selected_demo {
+        "workspace" => {
+            let ctx = DemoContext::for_bounds(bounds);
+            let mut runtime = Runtime::new(DemoMachine::new(), ctx.clone(), ());
+            runtime.dispatch(RuntimeEvent::Focus(ctx.tabs.tab_base_id));
+            sync_demo_runtime_meta(&mut runtime, bounds);
+            runtime.send(knopper::DemoMsg::InspectBounds((
+                bounds.width,
+                bounds.height,
+            )));
+
+            if use_shell {
+                print_shell_help();
+                render_demo(&mut runtime, bounds);
+                #[cfg(feature = "notcurses")]
+                render_notcurses(&mut runtime, bounds, backend.as_mut());
+                run_shell(&ctx, bounds, &mut runtime, {
+                    #[cfg(feature = "notcurses")]
+                    {
+                        backend.as_mut()
+                    }
+                    #[cfg(not(feature = "notcurses"))]
+                    {
+                        None
+                    }
+                });
+            } else {
+                let result = run_raw_host(ctx.clone(), bounds, &mut runtime, {
+                    #[cfg(feature = "notcurses")]
+                    {
+                        backend.as_mut()
+                    }
+                    #[cfg(not(feature = "notcurses"))]
+                    {
+                        None
+                    }
+                });
+                if let Err(error) = result {
+                    eprintln!("interactive host failed: {error}");
+                }
             }
-            #[cfg(not(feature = "notcurses"))]
-            {
-                None
-            }
-        });
-    } else {
-        let result = run_raw_host(ctx.clone(), bounds, &mut runtime, {
-            #[cfg(feature = "notcurses")]
-            {
-                backend.as_mut()
-            }
-            #[cfg(not(feature = "notcurses"))]
-            {
-                None
-            }
-        });
-        if let Err(error) = result {
-            eprintln!("interactive host failed: {error}");
         }
+        "review" => {
+            if use_shell {
+                eprintln!("--shell is currently only supported for --demo workspace");
+                return;
+            }
+            let ctx = ReviewDemoContext::for_bounds(bounds);
+            let mut runtime = Runtime::new(ReviewDemoMachine::new(), ctx.clone(), ());
+            runtime.dispatch(RuntimeEvent::Focus(ctx.tabs.tab_base_id));
+            sync_review_runtime_meta(&mut runtime, bounds);
+            let result = run_review_raw_host(ctx, bounds, &mut runtime, {
+                #[cfg(feature = "notcurses")]
+                {
+                    backend.as_mut()
+                }
+                #[cfg(not(feature = "notcurses"))]
+                {
+                    None
+                }
+            });
+            if let Err(error) = result {
+                eprintln!("interactive host failed: {error}");
+            }
+        }
+        other => eprintln!("unknown demo: {other} (expected workspace or review)"),
     }
 }
 
@@ -667,7 +703,13 @@ fn snapshot_text(runtime: &mut Runtime<DemoMachine>, bounds: Rect) -> String {
     out
 }
 
-fn render_scene_buffer(runtime: &mut Runtime<DemoMachine>, bounds: Rect) -> Vec<String> {
+fn render_scene_buffer<M>(runtime: &mut Runtime<M>, bounds: Rect) -> Vec<String>
+where
+    M: knopper::Machine<Shared = ()>,
+    M::Context: Clone,
+    M::Model: Clone + cliffy_core::IntoGeometric + cliffy_core::FromGeometric + 'static,
+    M::Msg: Clone + 'static,
+{
     let width = usize::from(bounds.width.max(1));
     let height = usize::from(bounds.height.max(1));
     let mut rows = vec![vec![' '; width]; height];
@@ -811,11 +853,16 @@ fn render_raw_frame(
 }
 
 #[cfg(feature = "notcurses")]
-fn render_notcurses(
-    runtime: &mut Runtime<DemoMachine>,
+fn render_notcurses<M>(
+    runtime: &mut Runtime<M>,
     bounds: Rect,
     backend: Option<&mut NotcursesBackend>,
-) {
+) where
+    M: knopper::Machine<Shared = ()>,
+    M::Context: Clone,
+    M::Model: Clone + cliffy_core::IntoGeometric + cliffy_core::FromGeometric + 'static,
+    M::Msg: Clone + 'static,
+{
     if let Some(backend) = backend
         && let Err(error) = runtime.render_to_backend_auto_cursor(backend, bounds)
     {
@@ -825,7 +872,204 @@ fn render_notcurses(
 
 #[cfg(not(feature = "notcurses"))]
 #[allow(dead_code)]
-fn render_notcurses(_runtime: &mut Runtime<DemoMachine>, _bounds: Rect, _backend: DemoBackend<'_>) {
+fn render_notcurses<M>(_runtime: &mut Runtime<M>, _bounds: Rect, _backend: DemoBackend<'_>)
+where
+    M: knopper::Machine<Shared = ()>,
+    M::Context: Clone,
+    M::Model: Clone + cliffy_core::IntoGeometric + cliffy_core::FromGeometric + 'static,
+    M::Msg: Clone + 'static,
+{
+}
+
+fn run_review_raw_host(
+    mut ctx: ReviewDemoContext,
+    mut bounds: Rect,
+    runtime: &mut Runtime<ReviewDemoMachine>,
+    #[allow(unused_variables)] mut backend: DemoBackend<'_>,
+) -> io::Result<()> {
+    let mut stdout = io::stdout();
+    let using_notcurses = backend.is_some();
+    if !using_notcurses {
+        terminal::enable_raw_mode()?;
+        execute!(stdout, EnterAlternateScreen)?;
+    }
+
+    let mut help_visible = true;
+    loop {
+        if refresh_review_host_bounds(runtime, &mut ctx, &mut bounds) {
+            runtime.invalidate_render_state();
+        }
+        sync_review_runtime_meta(runtime, bounds);
+
+        #[cfg(feature = "notcurses")]
+        if let Some(backend) = backend.as_deref_mut() {
+            render_notcurses(runtime, bounds, Some(backend));
+        } else {
+            render_review_raw_frame(&mut stdout, runtime, bounds, help_visible)?;
+        }
+
+        #[cfg(not(feature = "notcurses"))]
+        render_review_raw_frame(&mut stdout, runtime, bounds, help_visible)?;
+
+        #[cfg(feature = "notcurses")]
+        if let Some(backend) = backend.as_deref_mut() {
+            let input = backend
+                .read_event()
+                .map_err(|error| io::Error::other(error.to_string()))?;
+            if handle_notcurses_input_review(
+                input,
+                runtime,
+                &mut ctx,
+                &mut bounds,
+                &mut help_visible,
+            ) {
+                break;
+            }
+            continue;
+        }
+
+        match event::read()? {
+            CtEvent::Key(key) if matches!(key.kind, KeyEventKind::Press | KeyEventKind::Repeat) => {
+                if key.code == KeyCode::Char('q') && !key.modifiers.contains(KeyModifiers::CONTROL)
+                {
+                    break;
+                }
+                if key.code == KeyCode::Char('?') {
+                    help_visible = !help_visible;
+                    continue;
+                }
+                if let Some(mapped) = map_crossterm_key(key.code, key.modifiers) {
+                    handle_review_runtime_key(runtime, &ctx, mapped);
+                }
+            }
+            CtEvent::Resize(width, height) => {
+                bounds = Rect::new(0, 0, width, height);
+                ctx = ReviewDemoContext::for_bounds(bounds);
+                runtime.set_context(ctx.clone());
+                runtime.dispatch(RuntimeEvent::Resize(knopper::ResizeEvent { width, height }));
+                sync_review_runtime_meta(runtime, bounds);
+            }
+            _ => {}
+        }
+    }
+
+    if !using_notcurses {
+        execute!(stdout, LeaveAlternateScreen)?;
+        terminal::disable_raw_mode()?;
+    }
+    #[cfg(feature = "notcurses")]
+    if let Some(backend) = backend {
+        let _ = knopper::TerminalBackend::shutdown(backend);
+    }
+    Ok(())
+}
+
+#[cfg(feature = "notcurses")]
+fn handle_notcurses_input_review(
+    input: NcInput,
+    runtime: &mut Runtime<ReviewDemoMachine>,
+    ctx: &mut ReviewDemoContext,
+    bounds: &mut Rect,
+    help_visible: &mut bool,
+) -> bool {
+    refresh_review_host_bounds(runtime, ctx, bounds);
+    if input.is_release() {
+        return false;
+    }
+    if input.received == NcReceived::Char('?') {
+        *help_visible = !*help_visible;
+        return false;
+    }
+    if input.received == NcReceived::Char('q') && !input.keymod.has_ctrl() {
+        return true;
+    }
+    if input.received == NcReceived::Key(NcKey::Resize) {
+        refresh_review_host_bounds(runtime, ctx, bounds);
+        sync_review_runtime_meta(runtime, *bounds);
+        return false;
+    }
+    if let Some(mapped) = map_notcurses_key(input) {
+        handle_review_runtime_key(runtime, ctx, mapped);
+    }
+    false
+}
+
+fn refresh_review_host_bounds(
+    runtime: &mut Runtime<ReviewDemoMachine>,
+    ctx: &mut ReviewDemoContext,
+    bounds: &mut Rect,
+) -> bool {
+    if let Ok((width, height)) = terminal::size() {
+        let next = Rect::new(0, 0, width, height);
+        if *bounds != next {
+            *bounds = next;
+            *ctx = ReviewDemoContext::for_bounds(next);
+            runtime.set_context(ctx.clone());
+            runtime.dispatch(RuntimeEvent::Resize(knopper::ResizeEvent { width, height }));
+            return true;
+        }
+    }
+    false
+}
+
+fn sync_review_runtime_meta(runtime: &mut Runtime<ReviewDemoMachine>, bounds: Rect) {
+    let focus = runtime.focus().current().cloned();
+    let cursor = runtime.cursor(bounds);
+    if runtime.model().focused != focus {
+        runtime.send(ReviewDemoMsg::FocusChanged(focus));
+    }
+    if runtime.model().cursor != cursor {
+        runtime.send(ReviewDemoMsg::CursorChanged(cursor));
+    }
+}
+
+fn handle_review_runtime_key(
+    runtime: &mut Runtime<ReviewDemoMachine>,
+    ctx: &ReviewDemoContext,
+    key: KeyEvent,
+) {
+    if matches!(key.key, Key::Tab) {
+        runtime.dispatch(RuntimeEvent::Key(key));
+        return;
+    }
+    let machine = ReviewDemoMachine::new();
+    let model = runtime.model();
+    let focus = runtime.focus().clone();
+    if let Some(msg) = machine.key_msg(&focus, &model, key, ctx) {
+        runtime.send(msg);
+    } else {
+        runtime.dispatch(RuntimeEvent::Key(key));
+    }
+}
+
+fn render_review_raw_frame(
+    stdout: &mut io::Stdout,
+    runtime: &mut Runtime<ReviewDemoMachine>,
+    bounds: Rect,
+    help_visible: bool,
+) -> io::Result<()> {
+    execute!(stdout, Clear(ClearType::All), MoveTo(0, 0))?;
+    let lines = render_scene_buffer(runtime, bounds);
+    writeln!(
+        stdout,
+        "Knopper review demo  |  {}x{}",
+        bounds.width, bounds.height
+    )?;
+    writeln!(stdout, "{}", "─".repeat(usize::from(bounds.width.max(1))))?;
+    for line in lines
+        .into_iter()
+        .take(usize::from(bounds.height.saturating_sub(4)))
+    {
+        writeln!(stdout, "{line}")?;
+    }
+    writeln!(stdout, "{}", "─".repeat(usize::from(bounds.width.max(1))))?;
+    if help_visible {
+        writeln!(
+            stdout,
+            "q quit  |  tab / shift-tab focus  |  arrows navigate  |  enter commit"
+        )?;
+    }
+    stdout.flush()
 }
 
 fn print_shell_help() {

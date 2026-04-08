@@ -172,9 +172,9 @@ impl Machine for TextareaMachine {
                             Scene::text(self.line_id(ctx, index), line)
                                 .with_role(Role::Editor)
                                 .with_style(if model.value.is_empty() {
-                                    Style::PLAIN.fg(Color::Ansi(8))
+                                    Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0))
                                 } else {
-                                    Style::PLAIN.fg(Color::Ansi(6)).bold()
+                                    Style::PLAIN.fg(Color::Ansi(6)).bg(Color::Ansi(0)).bold()
                                 })
                                 .focusable()
                         })
@@ -182,7 +182,7 @@ impl Machine for TextareaMachine {
                 ),
             ),
         )
-        .with_style(Style::PLAIN.fg(Color::Ansi(8)))
+        .with_style(Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0)))
     }
 
     fn project(

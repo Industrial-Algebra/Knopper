@@ -92,6 +92,17 @@ Note: `--shell` is a diagnostic command driver, not a fullscreen TUI. It prints 
 
 The raw-key host is the actual interactive terminal demo. It renders a composed Knopper workspace built from the standard machines and supports direct raw-key interaction, including focus traversal, textarea editing, list navigation, quick-actions palette activation via `Ctrl-P`, and a toggleable inspector via `Ctrl-G` or `F2`.
 
+The project now includes a second review-focused demo accessible from the main host as well:
+
+```bash
+cargo run -- --demo review
+cargo run --features notcurses -- --notcurses --demo review
+```
+
+Cargo's default run target is now the main `Knopper` host binary, so plain `cargo run ...` launches that host. The older standalone `review_demo` binary still exists, but the preferred path is to use the main host with `--demo review`.
+
+This review-focused workspace exists specifically to exercise the extracted composition helper layer in `src/demo_ui.rs` against a second application shape.
+
 The current demo workspace is intentionally a little more app-like than a bare control gallery:
 
 - tabbed workspace header
@@ -127,6 +138,7 @@ Architecture drafts:
 - [docs/architecture/03-collaboration-model.md](docs/architecture/03-collaboration-model.md)
 - [docs/architecture/04-runtime-pipeline.md](docs/architecture/04-runtime-pipeline.md)
 - [docs/architecture/05-rendering-model.md](docs/architecture/05-rendering-model.md)
+- [docs/architecture/06-application-layout-patterns.md](docs/architecture/06-application-layout-patterns.md)
 
 ## Roadmap
 

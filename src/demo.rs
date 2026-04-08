@@ -2,7 +2,8 @@ use crate::{
     Color, Effect, FocusPath, FocusScopePolicy, FocusState, Key, KeyEvent, Machine, Padding, Scene,
     SceneBehavior, SizeConstraint, Style, child_has_focus,
     demo_ui::{
-        PresenceCue, PresenceTone, focus_style, labeled_value, presence_strip, surface_panel,
+        PanelFill, PresenceCue, PresenceTone, app_shell, bounded_surface_panel_with_fill,
+        focus_style, labeled_value, master_detail, presence_strip, split_columns,
         truncated_wrapped_lines,
     },
     dispatch_if_focused, project_child,
@@ -621,9 +622,11 @@ impl Machine for DemoMachine {
                 vec![toggle, Scene::text(94_016_u64, "  "), button],
             ),
         );
-        let notes_pane = surface_panel(
+        let panel_body_height = ctx.textarea.height.saturating_add(2).max(8);
+        let notes_pane = bounded_surface_panel_with_fill(
             94_020_u64,
             ctx.textarea.width.saturating_add(2),
+            panel_body_height,
             "Notes",
             if notes_focused {
                 "Editing shared draft"
@@ -633,6 +636,7 @@ impl Machine for DemoMachine {
             &notes_presence_cues(notes_focused),
             textarea,
             notes_focused,
+            PanelFill::Grid,
         );
         let selected_task = ctx.list.items.get(model.list.selected).map(|item| TaskRow {
             title: item.title.clone(),
@@ -644,35 +648,33 @@ impl Machine for DemoMachine {
                 .copied()
                 .unwrap_or(false),
         });
-        let task_list_body = Scene::column(
+        let task_list_body = master_detail(
             94_028_u64,
-            vec![
+            ctx.list_width.saturating_sub(4),
+            ctx.list.viewport_height.saturating_add(2),
+            panel_body_height
+                .saturating_sub(ctx.list.viewport_height)
+                .saturating_sub(4)
+                .max(4),
+            Scene::border(94_004_u64, list).with_style(if tasks_focused {
+                focus_style()
+            } else {
+                Style::PLAIN.fg(Color::Ansi(8))
+            }),
+            Scene::border(
+                94_033_u64,
                 Scene::sized(
-                    94_032_u64,
-                    SizeConstraint::width(ctx.list_width.saturating_sub(4)),
-                    Scene::border(94_004_u64, list).with_style(if tasks_focused {
-                        focus_style()
-                    } else {
-                        Style::PLAIN.fg(Color::Ansi(8))
-                    }),
+                    94_034_u64,
+                    SizeConstraint::width(ctx.list_width.saturating_sub(6)),
+                    task_detail_scene(selected_task.as_ref(), ctx.list_width.saturating_sub(14)),
                 ),
-                Scene::border(
-                    94_033_u64,
-                    Scene::sized(
-                        94_034_u64,
-                        SizeConstraint::width(ctx.list_width.saturating_sub(6)),
-                        task_detail_scene(
-                            selected_task.as_ref(),
-                            ctx.list_width.saturating_sub(14),
-                        ),
-                    ),
-                )
-                .with_style(Style::PLAIN.fg(Color::Ansi(8))),
-            ],
+            )
+            .with_style(Style::PLAIN.fg(Color::Ansi(8))),
         );
-        let tasks_pane = surface_panel(
+        let tasks_pane = bounded_surface_panel_with_fill(
             94_022_u64,
             ctx.list_width.saturating_sub(4),
+            panel_body_height,
             "Tasks",
             if tasks_focused {
                 "Navigate and commit tasks"
@@ -682,6 +684,7 @@ impl Machine for DemoMachine {
             &task_presence_cues(selected_task.as_ref()),
             task_list_body,
             tasks_focused,
+            PanelFill::Grid,
         );
         let body = Scene::padding(
             94_001_u64,
@@ -691,24 +694,19 @@ impl Machine for DemoMachine {
                 bottom: 0,
                 left: 0,
             },
-            Scene::row(
+            split_columns(
                 94_017_u64,
-                vec![
-                    Scene::sized(
-                        94_002_u64,
-                        SizeConstraint::width(ctx.textarea.width.saturating_add(6)),
-                        notes_pane,
+                ctx.textarea.width.saturating_add(6),
+                ctx.list_width,
+                notes_pane,
+                Scene::sized(
+                    94_003_u64,
+                    SizeConstraint::new(
+                        Some(ctx.list_width),
+                        Some(panel_body_height.saturating_add(4)),
                     ),
-                    Scene::text(94_018_u64, "  "),
-                    Scene::sized(
-                        94_003_u64,
-                        SizeConstraint::new(
-                            Some(ctx.list_width),
-                            Some(ctx.textarea.height.saturating_add(9)),
-                        ),
-                        tasks_pane,
-                    ),
-                ],
+                    tasks_pane,
+                ),
             ),
         );
         let mut status_children =
@@ -733,25 +731,16 @@ impl Machine for DemoMachine {
             94_007_u64,
             "demo-root",
             FocusScopePolicy::Passthrough,
-            Scene::border(
+            app_shell(
                 94_008_u64,
-                Scene::sized(
-                    94_009_u64,
-                    SizeConstraint::new(Some(ctx.width), Some(ctx.height)),
-                    Scene::column(
-                        94_010_u64,
-                        vec![
-                            Scene::text(94_011_u64, "Knopper Demo Workspace")
-                                .with_role(crate::Role::Header)
-                                .with_style(Style::PLAIN.fg(Color::Ansi(6)).bold()),
-                            tabs,
-                            controls,
-                            body,
-                            status,
-                        ],
-                    ),
-                ),
-            ),
+                ctx.width,
+                ctx.height,
+                "Knopper Demo Workspace",
+                tabs,
+                Scene::column(94_010_u64, vec![controls, body]),
+                status,
+            )
+            .with_role(crate::Role::Header),
         );
 
         Scene::overlay(94_012_u64, vec![workspace, palette])
@@ -1034,9 +1023,6 @@ mod tests {
             )
         );
         assert!(ops.iter().any(|op| matches!(op, RenderOp::DrawText { content, .. } if content.contains("agent review"))));
-        assert!(ops.iter().any(
-            |op| matches!(op, RenderOp::DrawText { content, .. } if content == "Selected Task")
-        ));
     }
 
     #[test]

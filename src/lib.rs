@@ -12,6 +12,7 @@ pub mod layout;
 pub mod machine;
 pub mod render;
 pub mod renderer;
+pub mod review_demo;
 pub mod routing;
 pub mod runtime;
 pub mod scene;
@@ -38,6 +39,7 @@ pub use layout::{LayoutKind, LayoutNode, Rect, Size, find_node, measure, resolve
 pub use machine::{Machine, PureMachine, SceneBehavior};
 pub use render::{RenderOp, render_ops};
 pub use renderer::{MockRenderer, Renderer, render_once};
+pub use review_demo::{ReviewDemoContext, ReviewDemoMachine, ReviewDemoMsg, ReviewDemoState};
 pub use routing::{RoutedEvent, activation_message, focus_path, route_event};
 pub use runtime::Runtime;
 pub use scene::{

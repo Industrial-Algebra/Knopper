@@ -17,11 +17,21 @@ This makes the demo a practical development tool for validating composition, foc
 
 ## Raw-key interactive host
 
-Run the default demo host with:
+Run the default workspace demo host with:
 
 ```bash
 cargo run
 ```
+
+Cargo's default run target is the main `Knopper` host binary, so plain `cargo run` uses that host.
+
+Run the review demo variant with:
+
+```bash
+cargo run -- --demo review
+```
+
+The standalone `review_demo` binary still exists, but the preferred path is now to use the main host with `--demo review` so both demos share the same interactive runner.
 
 This mode:
 
@@ -41,6 +51,12 @@ If you want each frame to also render through the Notcurses backend, run:
 cargo run --features notcurses -- --notcurses
 ```
 
+For the review demo under the Notcurses-backed host:
+
+```bash
+cargo run --features notcurses -- --notcurses --demo review
+```
+
 This mode keeps the raw-key host and also pushes rendered frames through Knopper’s Notcurses backend.
 
 ## Command shell fallback
@@ -55,7 +71,7 @@ Important: this is not a fullscreen TUI. It is a diagnostic command driver that 
 
 ## What the demo contains
 
-The workspace includes:
+The default workspace demo includes:
 
 - tabs
 - a toggle

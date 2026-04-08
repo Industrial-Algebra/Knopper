@@ -110,15 +110,19 @@ impl Machine for ButtonMachine {
                 SizeConstraint::width(ctx.width),
                 Scene::text(ctx.label_id, ctx.label.clone())
                     .focusable()
-                    .with_style(style)
+                    .with_style(style.bg(Color::Ansi(0)))
                     .on_activate(ButtonMsg::Press),
             ),
         )
-        .with_style(Style::PLAIN.fg(if model.activations > 0 {
-            Color::Ansi(2)
-        } else {
-            Color::Ansi(8)
-        }))
+        .with_style(
+            Style::PLAIN
+                .fg(if model.activations > 0 {
+                    Color::Ansi(2)
+                } else {
+                    Color::Ansi(8)
+                })
+                .bg(Color::Ansi(0)),
+        )
     }
 
     fn project(
