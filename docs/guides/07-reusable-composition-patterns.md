@@ -39,21 +39,29 @@ Current helpers include:
 - `PresenceTone`
 - `PresenceCue`
 - `PanelFill`
+- `PanelTheme`
 - `focus_style()`
-- `surface_style()`
-- `section_title_style()`
+- `shell_theme()`
+- `panel_theme(...)`
+- `reading_theme()`
+- `status_theme()`
 - `presence_style()`
 - `presence_strip(...)`
 - `panel_header(...)`
 - `panel_background(...)`
 - `panel_chrome(...)`
+- `panel_chrome_with_fill(...)`
 - `surface_panel(...)`
+- `surface_panel_with_theme(...)`
 - `surface_panel_with_fill(...)`
 - `bounded_surface_panel(...)`
+- `bounded_surface_panel_with_theme(...)`
 - `bounded_surface_panel_with_fill(...)`
 - `split_columns(...)`
 - `master_detail(...)`
 - `app_shell(...)`
+- `app_shell_with_theme(...)`
+- `app_shell_with_fill(...)`
 - `labeled_value(...)`
 - `wrap_text_lines(...)`
 - `truncated_wrapped_lines(...)`
@@ -66,20 +74,17 @@ Under the hood, panels now separate into:
 
 - `panel_header(...)`
 - `panel_chrome(...)`
+- `PanelTheme`
 
-This separation makes it easier to evolve panel fills, panel background treatments, and future Notcurses-native panel effects.
+The current emphasis is a solid panel layout and chrome system built from explicit styles for:
 
-The richer fill variants are intentionally lightweight and text-cell-native for now, but they already let demos differentiate between calmer writing surfaces and more structured browsing/queue surfaces.
+- border/frame
+- body background
+- header background
+- title
+- subtitle / muted metadata
 
-Panel fills also react to focus state now: the configured fill acts as the panel's resting treatment, and active panels are automatically promoted to a stronger variant for clearer visual emphasis.
-
-Panel fill is now configurable via `PanelFill`, with the helper layer currently exposing:
-
-- `Plain`
-- `Grid`
-- `DenseGrid`
-- `Bands`
-- `Dots`
+This gives us a cleaner way to iterate on panel hierarchy first, while preserving `PanelFill` as an optional future path for richer Notcurses-native fills and rendering surfaces.
 
 Use `surface_panel(...)` when you want a consistent application surface with:
 
@@ -167,6 +172,8 @@ Two newer helpers support a first minimal application-layout layer:
 - `split_columns(...)`
 - `master_detail(...)`
 - `app_shell(...)`
+- `app_shell_with_theme(...)`
+- `app_shell_with_fill(...)`
 
 These are intentionally small, but they establish explicit contracts for:
 

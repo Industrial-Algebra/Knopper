@@ -6,8 +6,9 @@ use crate::{
     TextareaMachine, TextareaMsg, TextareaState, ToggleContext, ToggleMachine, ToggleMsg,
     ToggleState, child_has_focus,
     demo_ui::{
-        PanelFill, PresenceCue, PresenceTone, app_shell, bounded_surface_panel_with_fill,
-        focus_style, labeled_value, master_detail, split_columns, truncated_wrapped_lines,
+        PresenceCue, PresenceTone, app_shell_with_theme, bounded_surface_panel_with_theme,
+        focus_style, labeled_value, master_detail, panel_theme, reading_theme, shell_theme,
+        split_columns, status_theme, truncated_wrapped_lines,
     },
     dispatch_if_focused, project_child, update_child,
 };
@@ -500,7 +501,7 @@ impl Machine for ReviewDemoMachine {
                             review_detail_scene(selected, ctx.list_width.saturating_sub(14)),
                         ),
                     )
-                    .with_style(Style::PLAIN.fg(Color::Ansi(8))),
+                    .with_style(reading_theme().frame),
                 ),
             ],
         );
@@ -510,16 +511,18 @@ impl Machine for ReviewDemoMachine {
                 Scene::row(
                     116_011_u64,
                     vec![follow, Scene::text(116_012_u64, "  "), publish],
-                ),
+                )
+                .with_style(Style::PLAIN.bg(Color::Ansi(0))),
                 draft,
             ],
-        );
+        )
+        .with_style(Style::PLAIN.bg(Color::Ansi(0)));
 
         let layout = split_columns(
             116_020_u64,
             ctx.list_width,
             ctx.draft.width.saturating_add(6),
-            bounded_surface_panel_with_fill(
+            bounded_surface_panel_with_theme(
                 116_022_u64,
                 ctx.list_width.saturating_sub(4),
                 panel_body_height,
@@ -527,11 +530,12 @@ impl Machine for ReviewDemoMachine {
                 "Filter and inspect pending reviews",
                 &review_presence(selected),
                 left_body,
-                child_has_focus(&focus, self.list.root_id())
-                    || child_has_focus(&focus, self.query.root_id(&ctx.query)),
-                PanelFill::DenseGrid,
+                panel_theme(
+                    child_has_focus(&focus, self.list.root_id())
+                        || child_has_focus(&focus, self.query.root_id(&ctx.query)),
+                ),
             ),
-            bounded_surface_panel_with_fill(
+            bounded_surface_panel_with_theme(
                 116_025_u64,
                 ctx.draft.width.saturating_add(2),
                 panel_body_height,
@@ -539,10 +543,11 @@ impl Machine for ReviewDemoMachine {
                 "Compose participant-local review notes",
                 &draft_presence(model.follow.checked),
                 right_body,
-                child_has_focus(&focus, self.draft.root_id(&ctx.draft))
-                    || child_has_focus(&focus, self.follow.root_id(&ctx.follow))
-                    || child_has_focus(&focus, self.publish.root_id(&ctx.publish)),
-                PanelFill::Grid,
+                panel_theme(
+                    child_has_focus(&focus, self.draft.root_id(&ctx.draft))
+                        || child_has_focus(&focus, self.follow.root_id(&ctx.follow))
+                        || child_has_focus(&focus, self.publish.root_id(&ctx.publish)),
+                ),
             ),
         );
 
@@ -550,7 +555,7 @@ impl Machine for ReviewDemoMachine {
             116_030_u64,
             "review-demo-root",
             FocusScopePolicy::Passthrough,
-            app_shell(
+            app_shell_with_theme(
                 116_031_u64,
                 ctx.width,
                 ctx.height,
@@ -565,8 +570,9 @@ impl Machine for ReviewDemoMachine {
                         Scene::text(116_038_u64, model.status.clone())
                             .with_style(Style::PLAIN.bold()),
                     )
-                    .with_style(Style::PLAIN.fg(Color::Ansi(8))),
+                    .with_style(status_theme().frame),
                 ),
+                shell_theme(),
             ),
         )
     }
@@ -686,9 +692,10 @@ fn review_detail_scene(item: Option<&ReviewRow>, width: u16) -> Scene<ReviewDemo
                     .collect::<Vec<_>>(),
                 ),
             ],
-        ),
+        )
+        .with_style(Style::PLAIN.bg(Color::Ansi(0))),
         None => Scene::text(117_100_u64, "No review selected")
-            .with_style(Style::PLAIN.fg(Color::Ansi(8))),
+            .with_style(Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0))),
     }
 }
 

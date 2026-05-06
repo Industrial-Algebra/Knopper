@@ -157,8 +157,9 @@ A useful refinement is to separate:
 - `panel_header(...)`
 - `panel_chrome(...)`
 - bounded body content
+- a small style carrier such as `PanelTheme`
 
-so that header lanes, background fills, and body-region policies can evolve somewhat independently.
+so that header lanes, border/background color treatment, optional fills, and body-region policies can evolve somewhat independently.
 
 Examples:
 
@@ -182,7 +183,8 @@ Responsibilities:
 - define the body slot size contract
 - expose body/content as a bounded region
 - optionally reserve header/footer lanes
-- create a clean future seam for Notcurses-native panel fills/effects
+- provide an explicit seam for color/chrome tuning first
+- preserve a clean future seam for Notcurses-native panel fills/effects
 
 This avoids each app manually stacking `Border + Padding + Sized + Column` in slightly different and fragile ways.
 
@@ -373,8 +375,9 @@ Knopper’s future may want to expose richer Notcurses-native affordances such a
 
 A semantic application layout layer provides better anchors for that than raw unstructured scene composition.
 
-For example, a split between `panel_header(...)` and `panel_chrome(...)` creates a natural place to later support:
+For example, a split between `panel_header(...)`, `panel_chrome(...)`, and a small `PanelTheme` creates a natural place to support:
 
+- iterative border/background/title tuning
 - animated header emphasis
 - panel background fills (including grid-like treatments)
 - focus-reactive panel fill promotion

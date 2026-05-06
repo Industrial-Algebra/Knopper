@@ -11,6 +11,80 @@ pub enum PanelFill {
     Dots,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PanelTheme {
+    pub frame: Style,
+    pub body: Style,
+    pub header: Style,
+    pub title: Style,
+    pub subtitle: Style,
+    pub muted: Style,
+}
+
+#[must_use]
+pub fn focus_style() -> Style {
+    Style::PLAIN.fg(Color::Ansi(6)).bold()
+}
+
+#[must_use]
+pub fn shell_theme() -> PanelTheme {
+    PanelTheme {
+        frame: Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0)),
+        body: Style::PLAIN.bg(Color::Ansi(0)),
+        header: Style::PLAIN.bg(Color::Ansi(0)),
+        title: Style::PLAIN.fg(Color::Ansi(6)).bg(Color::Ansi(0)).bold(),
+        subtitle: Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0)),
+        muted: Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0)),
+    }
+}
+
+#[must_use]
+pub fn panel_theme(active: bool) -> PanelTheme {
+    if active {
+        PanelTheme {
+            frame: Style::PLAIN.fg(Color::Ansi(6)).bg(Color::Ansi(0)).bold(),
+            body: Style::PLAIN.bg(Color::Ansi(0)),
+            header: Style::PLAIN.bg(Color::Ansi(0)),
+            title: Style::PLAIN.fg(Color::Ansi(6)).bg(Color::Ansi(0)).bold(),
+            subtitle: Style::PLAIN.fg(Color::Ansi(7)).bg(Color::Ansi(0)),
+            muted: Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0)),
+        }
+    } else {
+        PanelTheme {
+            frame: Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0)),
+            body: Style::PLAIN.bg(Color::Ansi(0)),
+            header: Style::PLAIN.bg(Color::Ansi(0)),
+            title: Style::PLAIN.fg(Color::Ansi(7)).bg(Color::Ansi(0)).bold(),
+            subtitle: Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0)),
+            muted: Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0)),
+        }
+    }
+}
+
+#[must_use]
+pub fn reading_theme() -> PanelTheme {
+    PanelTheme {
+        frame: Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0)),
+        body: Style::PLAIN.bg(Color::Ansi(0)),
+        header: Style::PLAIN.bg(Color::Ansi(0)),
+        title: Style::PLAIN.fg(Color::Ansi(7)).bg(Color::Ansi(0)).bold(),
+        subtitle: Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0)),
+        muted: Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0)),
+    }
+}
+
+#[must_use]
+pub fn status_theme() -> PanelTheme {
+    PanelTheme {
+        frame: Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0)),
+        body: Style::PLAIN.bg(Color::Ansi(0)),
+        header: Style::PLAIN.bg(Color::Ansi(0)),
+        title: Style::PLAIN.fg(Color::Ansi(7)).bg(Color::Ansi(0)).bold(),
+        subtitle: Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0)),
+        muted: Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0)),
+    }
+}
+
 #[must_use]
 pub fn truncate_text(text: &str, width: u16) -> String {
     let max = usize::from(width.max(1));
@@ -41,29 +115,6 @@ pub struct PresenceCue {
 }
 
 #[must_use]
-pub fn focus_style() -> Style {
-    Style::PLAIN.fg(Color::Ansi(6)).bold()
-}
-
-#[must_use]
-pub fn surface_style(active: bool) -> Style {
-    if active {
-        focus_style()
-    } else {
-        Style::PLAIN.fg(Color::Ansi(8))
-    }
-}
-
-#[must_use]
-pub fn section_title_style(active: bool) -> Style {
-    if active {
-        focus_style()
-    } else {
-        Style::PLAIN.fg(Color::Ansi(7)).bold()
-    }
-}
-
-#[must_use]
 pub fn presence_style(tone: PresenceTone) -> Style {
     match tone {
         PresenceTone::Local => focus_style(),
@@ -74,6 +125,11 @@ pub fn presence_style(tone: PresenceTone) -> Style {
 
 #[must_use]
 pub fn presence_strip<Msg>(base: u64, cues: &[PresenceCue]) -> Scene<Msg> {
+    themed_presence_strip(base, cues, Style::PLAIN.fg(Color::Ansi(8)))
+}
+
+#[must_use]
+fn themed_presence_strip<Msg>(base: u64, cues: &[PresenceCue], value_style: Style) -> Scene<Msg> {
     Scene::row(
         base,
         cues.iter()
@@ -85,10 +141,10 @@ pub fn presence_strip<Msg>(base: u64, cues: &[PresenceCue]) -> Scene<Msg> {
                     Scene::text(id.saturating_add(1), cue.name)
                         .with_style(presence_style(cue.tone)),
                     Scene::text(id.saturating_add(2), format!(":{}", cue.label))
-                        .with_style(Style::PLAIN.fg(Color::Ansi(8))),
+                        .with_style(value_style),
                 ];
                 if index + 1 != cues.len() {
-                    nodes.push(Scene::text(id.saturating_add(3), "  "));
+                    nodes.push(Scene::text(id.saturating_add(3), "  ").with_style(value_style));
                 }
                 nodes
             })
@@ -103,76 +159,71 @@ pub fn panel_header<Msg>(
     title: &str,
     subtitle: &str,
     cues: &[PresenceCue],
-    active: bool,
+    theme: &PanelTheme,
 ) -> Scene<Msg> {
     Scene::column(
         base,
         vec![
             Scene::text(base.saturating_add(1), truncate_text(title, width))
-                .with_style(section_title_style(active)),
+                .with_style(theme.title),
             Scene::text(base.saturating_add(2), truncate_text(subtitle, width))
-                .with_style(Style::PLAIN.fg(Color::Ansi(8))),
+                .with_style(theme.subtitle),
             Scene::sized(
                 base.saturating_add(3),
                 SizeConstraint::width(width),
                 Scene::viewport(
                     base.saturating_add(4),
-                    presence_strip(base.saturating_add(5), cues),
+                    themed_presence_strip(base.saturating_add(5), cues, theme.muted),
                 ),
             ),
         ],
     )
+    .with_style(theme.header)
+}
+
+fn lattice_row(
+    width: usize,
+    row: usize,
+    cell_width: usize,
+    cell_height: usize,
+    horizontal: char,
+    vertical: char,
+    intersection: char,
+) -> String {
+    let mut line = String::with_capacity(width);
+    let horizontal_row = row.is_multiple_of(cell_height);
+    for column in 0..width {
+        let vertical_col = column.is_multiple_of(cell_width);
+        let ch = match (horizontal_row, vertical_col) {
+            (true, true) => intersection,
+            (true, false) => horizontal,
+            (false, true) => vertical,
+            (false, false) => ' ',
+        };
+        line.push(ch);
+    }
+    line
 }
 
 fn panel_fill_row(fill: PanelFill, width: u16, row: usize) -> String {
     let width = usize::from(width.max(1));
     match fill {
         PanelFill::Plain => " ".repeat(width),
-        PanelFill::Grid => {
+        PanelFill::Grid => lattice_row(width, row, 4, 2, '┈', '┊', '┼'),
+        PanelFill::DenseGrid => lattice_row(width, row, 3, 2, '─', '│', '┼'),
+        PanelFill::Bands => {
+            let ch = if row.is_multiple_of(2) { '┈' } else { ' ' };
+            std::iter::repeat_n(ch, width).collect()
+        }
+        PanelFill::Dots => {
             let mut line = String::with_capacity(width);
             for column in 0..width {
                 let major_row = row.is_multiple_of(4);
                 let major_col = column.is_multiple_of(8);
                 let minor_row = row % 4 == 2;
                 let minor_col = column % 8 == 4;
-                line.push(if (major_row && minor_col) || (minor_row && major_col) {
-                    '·'
-                } else {
-                    ' '
-                });
-            }
-            line
-        }
-        PanelFill::DenseGrid => {
-            let mut line = String::with_capacity(width);
-            for column in 0..width {
-                let major_row = row.is_multiple_of(3);
-                let major_col = column.is_multiple_of(6);
-                let minor_row = row % 3 == 1;
-                let minor_col = column % 6 == 3;
-                line.push(if (major_row && minor_col) || (minor_row && major_col) {
-                    '·'
-                } else if major_row && major_col {
-                    '•'
-                } else {
-                    ' '
-                });
-            }
-            line
-        }
-        PanelFill::Bands => {
-            let ch = if row % 4 == 1 { '·' } else { ' ' };
-            std::iter::repeat_n(ch, width).collect()
-        }
-        PanelFill::Dots => {
-            let mut line = String::with_capacity(width);
-            for column in 0..width {
-                let major_row = row.is_multiple_of(5);
-                let major_col = column.is_multiple_of(10);
-                let minor_row = row % 5 == 2;
-                let minor_col = column % 10 == 5;
                 line.push(if (major_row && major_col) || (minor_row && minor_col) {
-                    '·'
+                    '•'
                 } else {
                     ' '
                 });
@@ -186,10 +237,55 @@ fn panel_fill_style(fill: PanelFill) -> Style {
     match fill {
         PanelFill::Plain => Style::PLAIN.bg(Color::Ansi(0)),
         PanelFill::Grid => Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0)),
-        PanelFill::DenseGrid => Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0)).bold(),
+        PanelFill::DenseGrid => Style::PLAIN.fg(Color::Ansi(7)).bg(Color::Ansi(0)),
         PanelFill::Bands => Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0)),
-        PanelFill::Dots => Style::PLAIN.fg(Color::Ansi(6)).bg(Color::Ansi(0)),
+        PanelFill::Dots => Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0)),
     }
+}
+
+fn shell_fill_style(fill: PanelFill) -> Style {
+    match fill {
+        PanelFill::Plain => Style::PLAIN.bg(Color::Ansi(0)),
+        _ => Style::PLAIN.fg(Color::Ansi(8)).bg(Color::Ansi(0)),
+    }
+}
+
+fn shell_background<Msg>(base: u64, width: u16, height: u16, fill: PanelFill) -> Scene<Msg> {
+    let width_usize = usize::from(width.max(1));
+    let height_usize = usize::from(height.max(1));
+    let gutter = (width_usize.min(30) / 3).max(6);
+    Scene::column(
+        base,
+        (0..height_usize)
+            .map(|offset| {
+                let row = if offset < 3 || offset + 3 >= height_usize {
+                    " ".repeat(width_usize)
+                } else {
+                    let source = panel_fill_row(fill, width, offset);
+                    source
+                        .chars()
+                        .enumerate()
+                        .map(|(index, ch)| {
+                            let in_left_gutter = index < gutter;
+                            let in_right_gutter = index + gutter >= width_usize;
+                            if (in_left_gutter || in_right_gutter)
+                                && matches!(ch, '┈' | '─' | '┊' | '│' | '┼')
+                            {
+                                ch
+                            } else {
+                                ' '
+                            }
+                        })
+                        .collect()
+                };
+                Scene::text(
+                    base.saturating_add(1 + u64::try_from(offset).unwrap_or(u64::MAX)),
+                    row,
+                )
+                .with_style(shell_fill_style(fill))
+            })
+            .collect::<Vec<_>>(),
+    )
 }
 
 fn active_panel_fill(fill: PanelFill) -> PanelFill {
@@ -225,15 +321,36 @@ pub fn panel_chrome<Msg>(
     height: u16,
     header: Scene<Msg>,
     body: Scene<Msg>,
-    active: bool,
+    theme: PanelTheme,
+) -> Scene<Msg> {
+    panel_chrome_with_fill(base, width, height, header, body, theme, PanelFill::Plain)
+}
+
+#[allow(clippy::too_many_arguments)]
+#[must_use]
+pub fn panel_chrome_with_fill<Msg>(
+    base: u64,
+    width: u16,
+    height: u16,
+    header: Scene<Msg>,
+    body: Scene<Msg>,
+    theme: PanelTheme,
     fill: PanelFill,
 ) -> Scene<Msg> {
     let body_height = height.saturating_sub(PANEL_HEADER_ROWS).max(1);
-    let fill = if active {
-        active_panel_fill(fill)
+    let body = body.with_style(theme.body);
+    let body = if fill == PanelFill::Plain {
+        body
     } else {
-        fill
+        Scene::stack(
+            base.saturating_add(6),
+            vec![
+                panel_background(base.saturating_add(7), width, body_height, fill),
+                body,
+            ],
+        )
     };
+
     Scene::border(
         base,
         Scene::padding(
@@ -245,32 +362,19 @@ pub fn panel_chrome<Msg>(
                 Scene::column(
                     base.saturating_add(3),
                     vec![
-                        header,
+                        header.with_style(theme.header),
                         Scene::sized(
                             base.saturating_add(4),
                             SizeConstraint::new(Some(width), Some(body_height)),
-                            Scene::viewport(
-                                base.saturating_add(5),
-                                Scene::stack(
-                                    base.saturating_add(6),
-                                    vec![
-                                        panel_background(
-                                            base.saturating_add(7),
-                                            width,
-                                            body_height,
-                                            fill,
-                                        ),
-                                        body,
-                                    ],
-                                ),
-                            ),
+                            Scene::viewport(base.saturating_add(5), body),
                         ),
                     ],
-                ),
+                )
+                .with_style(theme.body),
             ),
         ),
     )
-    .with_style(surface_style(active))
+    .with_style(theme.frame)
 }
 
 #[must_use]
@@ -283,15 +387,37 @@ pub fn surface_panel<Msg>(
     body: Scene<Msg>,
     active: bool,
 ) -> Scene<Msg> {
-    surface_panel_with_fill(
+    surface_panel_with_theme(
         base,
         width,
         title,
         subtitle,
         cues,
         body,
-        active,
-        PanelFill::Grid,
+        panel_theme(active),
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+#[must_use]
+pub fn surface_panel_with_theme<Msg>(
+    base: u64,
+    width: u16,
+    title: &str,
+    subtitle: &str,
+    cues: &[PresenceCue],
+    body: Scene<Msg>,
+    theme: PanelTheme,
+) -> Scene<Msg> {
+    bounded_surface_panel_with_theme(
+        base,
+        width,
+        PANEL_HEADER_ROWS.saturating_add(1).saturating_add(8),
+        title,
+        subtitle,
+        cues,
+        body,
+        theme,
     )
 }
 
@@ -332,7 +458,7 @@ pub fn bounded_surface_panel<Msg>(
     body: Scene<Msg>,
     active: bool,
 ) -> Scene<Msg> {
-    bounded_surface_panel_with_fill(
+    bounded_surface_panel_with_theme(
         base,
         width,
         height,
@@ -340,8 +466,36 @@ pub fn bounded_surface_panel<Msg>(
         subtitle,
         cues,
         body,
-        active,
-        PanelFill::Grid,
+        panel_theme(active),
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+#[must_use]
+pub fn bounded_surface_panel_with_theme<Msg>(
+    base: u64,
+    width: u16,
+    height: u16,
+    title: &str,
+    subtitle: &str,
+    cues: &[PresenceCue],
+    body: Scene<Msg>,
+    theme: PanelTheme,
+) -> Scene<Msg> {
+    panel_chrome(
+        base,
+        width,
+        height,
+        panel_header(
+            base.saturating_add(20),
+            width,
+            title,
+            subtitle,
+            cues,
+            &theme,
+        ),
+        body,
+        theme,
     )
 }
 
@@ -358,7 +512,8 @@ pub fn bounded_surface_panel_with_fill<Msg>(
     active: bool,
     fill: PanelFill,
 ) -> Scene<Msg> {
-    panel_chrome(
+    let theme = panel_theme(active);
+    panel_chrome_with_fill(
         base,
         width,
         height,
@@ -368,11 +523,15 @@ pub fn bounded_surface_panel_with_fill<Msg>(
             title,
             subtitle,
             cues,
-            active,
+            &theme,
         ),
         body,
-        active,
-        fill,
+        theme,
+        if active {
+            active_panel_fill(fill)
+        } else {
+            fill
+        },
     )
 }
 
@@ -442,6 +601,30 @@ pub fn app_shell<Msg>(
     body: Scene<Msg>,
     footer: Scene<Msg>,
 ) -> Scene<Msg> {
+    app_shell_with_theme(
+        base,
+        width,
+        height,
+        title,
+        header,
+        body,
+        footer,
+        shell_theme(),
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+#[must_use]
+pub fn app_shell_with_theme<Msg>(
+    base: u64,
+    width: u16,
+    height: u16,
+    title: &str,
+    header: Scene<Msg>,
+    body: Scene<Msg>,
+    footer: Scene<Msg>,
+    theme: PanelTheme,
+) -> Scene<Msg> {
     Scene::border(
         base,
         Scene::sized(
@@ -450,15 +633,84 @@ pub fn app_shell<Msg>(
             Scene::column(
                 base.saturating_add(2),
                 vec![
-                    Scene::text(base.saturating_add(3), title)
-                        .with_style(Style::PLAIN.fg(Color::Ansi(6)).bold()),
-                    header,
-                    body,
-                    footer,
+                    Scene::text(base.saturating_add(3), title).with_style(theme.title),
+                    header.with_style(theme.header),
+                    body.with_style(theme.body),
+                    footer.with_style(theme.body),
+                ],
+            )
+            .with_style(theme.body),
+        ),
+    )
+    .with_style(theme.frame)
+}
+
+#[allow(clippy::too_many_arguments)]
+#[must_use]
+pub fn app_shell_with_fill<Msg>(
+    base: u64,
+    width: u16,
+    height: u16,
+    title: &str,
+    header: Scene<Msg>,
+    body: Scene<Msg>,
+    footer: Scene<Msg>,
+    fill: PanelFill,
+) -> Scene<Msg> {
+    app_shell_with_theme_and_fill(
+        base,
+        width,
+        height,
+        title,
+        header,
+        body,
+        footer,
+        shell_theme(),
+        fill,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+#[must_use]
+pub fn app_shell_with_theme_and_fill<Msg>(
+    base: u64,
+    width: u16,
+    height: u16,
+    title: &str,
+    header: Scene<Msg>,
+    body: Scene<Msg>,
+    footer: Scene<Msg>,
+    theme: PanelTheme,
+    fill: PanelFill,
+) -> Scene<Msg> {
+    if fill == PanelFill::Plain {
+        return app_shell_with_theme(base, width, height, title, header, body, footer, theme);
+    }
+
+    Scene::border(
+        base,
+        Scene::sized(
+            base.saturating_add(1),
+            SizeConstraint::new(Some(width), Some(height)),
+            Scene::stack(
+                base.saturating_add(2),
+                vec![
+                    shell_background(base.saturating_add(3), width, height, fill),
+                    Scene::column(
+                        base.saturating_add(4),
+                        vec![
+                            Scene::text(base.saturating_add(5), title).with_style(theme.title),
+                            header.with_style(theme.header),
+                            body.with_style(theme.body),
+                            footer.with_style(theme.body),
+                        ],
+                    )
+                    .with_style(theme.body),
                 ],
             ),
         ),
     )
+    .with_style(theme.frame)
 }
 
 #[must_use]

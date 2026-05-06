@@ -2,9 +2,9 @@ use crate::{
     Color, Effect, FocusPath, FocusScopePolicy, FocusState, Key, KeyEvent, Machine, Padding, Scene,
     SceneBehavior, SizeConstraint, Style, child_has_focus,
     demo_ui::{
-        PanelFill, PresenceCue, PresenceTone, app_shell, bounded_surface_panel_with_fill,
-        focus_style, labeled_value, master_detail, presence_strip, split_columns,
-        truncated_wrapped_lines,
+        PresenceCue, PresenceTone, app_shell_with_theme, bounded_surface_panel_with_theme,
+        focus_style, labeled_value, master_detail, panel_theme, presence_strip, reading_theme,
+        shell_theme, split_columns, status_theme, truncated_wrapped_lines,
     },
     dispatch_if_focused, project_child,
     standard::{
@@ -620,10 +620,12 @@ impl Machine for DemoMachine {
             Scene::row(
                 94_015_u64,
                 vec![toggle, Scene::text(94_016_u64, "  "), button],
-            ),
-        );
+            )
+            .with_style(Style::PLAIN.bg(Color::Ansi(0))),
+        )
+        .with_style(Style::PLAIN.bg(Color::Ansi(0)));
         let panel_body_height = ctx.textarea.height.saturating_add(2).max(8);
-        let notes_pane = bounded_surface_panel_with_fill(
+        let notes_pane = bounded_surface_panel_with_theme(
             94_020_u64,
             ctx.textarea.width.saturating_add(2),
             panel_body_height,
@@ -635,8 +637,7 @@ impl Machine for DemoMachine {
             },
             &notes_presence_cues(notes_focused),
             textarea,
-            notes_focused,
-            PanelFill::Grid,
+            panel_theme(notes_focused),
         );
         let selected_task = ctx.list.items.get(model.list.selected).map(|item| TaskRow {
             title: item.title.clone(),
@@ -669,9 +670,9 @@ impl Machine for DemoMachine {
                     task_detail_scene(selected_task.as_ref(), ctx.list_width.saturating_sub(14)),
                 ),
             )
-            .with_style(Style::PLAIN.fg(Color::Ansi(8))),
+            .with_style(reading_theme().frame),
         );
-        let tasks_pane = bounded_surface_panel_with_fill(
+        let tasks_pane = bounded_surface_panel_with_theme(
             94_022_u64,
             ctx.list_width.saturating_sub(4),
             panel_body_height,
@@ -683,8 +684,7 @@ impl Machine for DemoMachine {
             },
             &task_presence_cues(selected_task.as_ref()),
             task_list_body,
-            tasks_focused,
-            PanelFill::Grid,
+            panel_theme(tasks_focused),
         );
         let body = Scene::padding(
             94_001_u64,
@@ -724,14 +724,14 @@ impl Machine for DemoMachine {
                 left: 0,
             },
             Scene::border(94_005_u64, Scene::column(94_013_u64, status_children))
-                .with_style(Style::PLAIN.fg(Color::Ansi(8))),
+                .with_style(status_theme().frame),
         );
 
         let workspace = Scene::focus_scope_with_policy(
             94_007_u64,
             "demo-root",
             FocusScopePolicy::Passthrough,
-            app_shell(
+            app_shell_with_theme(
                 94_008_u64,
                 ctx.width,
                 ctx.height,
@@ -739,6 +739,7 @@ impl Machine for DemoMachine {
                 tabs,
                 Scene::column(94_010_u64, vec![controls, body]),
                 status,
+                shell_theme(),
             )
             .with_role(crate::Role::Header),
         );
@@ -930,7 +931,8 @@ fn task_detail_scene(task: Option<&TaskRow>, detail_width: u16) -> Scene<DemoMsg
                     .collect::<Vec<_>>(),
                 ),
             ],
-        ),
+        )
+        .with_style(Style::PLAIN.bg(Color::Ansi(0))),
         None => Scene::column(
             95_500_u64,
             vec![
@@ -939,7 +941,8 @@ fn task_detail_scene(task: Option<&TaskRow>, detail_width: u16) -> Scene<DemoMsg
                 Scene::text(95_502_u64, "No task selected")
                     .with_style(Style::PLAIN.fg(Color::Ansi(8))),
             ],
-        ),
+        )
+        .with_style(Style::PLAIN.bg(Color::Ansi(0))),
     }
 }
 
