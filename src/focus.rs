@@ -146,14 +146,14 @@ fn collect_focusable<Msg>(scene: &Scene<Msg>, ids: &mut Vec<NodeId>) {
     match scene {
         Scene::Empty => {}
         Scene::Text(node) => {
-            if node.meta.focusable {
+            if node.meta.focusable && !node.meta.disabled {
                 ids.push(node.meta.id);
             }
         }
         Scene::Row { meta, children }
         | Scene::Column { meta, children }
         | Scene::Stack { meta, children } => {
-            if meta.focusable {
+            if meta.focusable && !meta.disabled {
                 ids.push(meta.id);
             }
             for child in children {
@@ -168,7 +168,7 @@ fn collect_focusable<Msg>(scene: &Scene<Msg>, ids: &mut Vec<NodeId>) {
         | Scene::Scroll { meta, child, .. }
         | Scene::Border { meta, child, .. }
         | Scene::Annotated { meta, child, .. } => {
-            if meta.focusable {
+            if meta.focusable && !meta.disabled {
                 ids.push(meta.id);
             }
             collect_focusable(child, ids);
@@ -596,6 +596,23 @@ mod tests {
             ),
             Some(NodeId::new(5))
         );
+    }
+
+    #[test]
+    fn disabled_nodes_are_skipped_by_focus_collection() {
+        use crate::FocusOrder;
+        let scene = Scene::<()>::column(
+            1_u64,
+            vec![
+                Scene::text(2_u64, "a").focusable(),
+                Scene::text(3_u64, "b").focusable().disabled(),
+                Scene::text(4_u64, "c").focusable(),
+            ],
+        );
+
+        // Focus order skips the disabled node.
+        let order = FocusOrder::collect_from_scene(&scene);
+        assert_eq!(order.as_slice(), &[NodeId::new(2), NodeId::new(4)]);
     }
 
     #[test]

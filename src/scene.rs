@@ -26,6 +26,12 @@ pub struct NodeMeta {
     pub style: Style,
     pub annotations: Vec<Annotation>,
     pub focusable: bool,
+    /// When true the node is visible but non-interactive: it is skipped by
+    /// focus collection, cannot be activated, and should be rendered dimmed
+    /// by backends. Distinct from `focusable = false` (a node may be
+    /// focusable but currently disabled) and from being absent from the
+    /// scene entirely (hidden).
+    pub disabled: bool,
 }
 
 impl NodeMeta {
@@ -37,6 +43,7 @@ impl NodeMeta {
             style: Style::PLAIN,
             annotations: Vec::new(),
             focusable: false,
+            disabled: false,
         }
     }
 }
@@ -355,6 +362,14 @@ impl<Msg> Scene<Msg> {
     #[must_use]
     pub fn focusable(mut self) -> Self {
         self.meta_mut().focusable = true;
+        self
+    }
+
+    /// Marks the node as disabled: visible but non-interactive. Disabled
+    /// nodes are skipped by focus collection and cannot be activated.
+    #[must_use]
+    pub fn disabled(mut self) -> Self {
+        self.meta_mut().disabled = true;
         self
     }
 
