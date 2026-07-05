@@ -147,6 +147,8 @@ Architecture drafts:
 - [docs/roadmap/02-standard-machine-collaboration-audit.md](docs/roadmap/02-standard-machine-collaboration-audit.md)
 - [docs/roadmap/03-participant-local-presence-overlays.md](docs/roadmap/03-participant-local-presence-overlays.md)
 - [docs/roadmap/04-textarea-editor-design.md](docs/roadmap/04-textarea-editor-design.md)
+- [docs/roadmap/05-distributed-correctness-schubert.md](docs/roadmap/05-distributed-correctness-schubert.md)
+- [docs/roadmap/06-collaboration-ready-contract.md](docs/roadmap/06-collaboration-ready-contract.md)
 
 ## Engineering baseline
 

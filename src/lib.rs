@@ -1,5 +1,6 @@
 pub mod annotation;
 pub mod backend;
+pub mod collaboration;
 pub mod compose;
 pub mod demo;
 pub mod demo_ui;
@@ -25,6 +26,7 @@ pub use backend::notcurses::NotcursesBackend;
 pub use backend::{
     BackendCommand, BackendEntry, BackendState, MockBackend, TerminalBackend, backend_commands,
 };
+pub use collaboration::{ParticipantId, ParticipantRoster, Presence, PresenceTone};
 pub use compose::{
     child_has_focus, dispatch_if_focused, map_effect, project_child, trap_focus, update_child,
 };
