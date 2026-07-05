@@ -1,7 +1,4 @@
-use crate::{
-    Anchor, FocusOrder, FocusState, Key, KeyEvent, NodeId, Padding, Scene, next_focus_in_order,
-    previous_focus_in_order, trap_focus,
-};
+use crate::{Anchor, FocusOrder, FocusState, Key, KeyEvent, NodeId, Padding, Scene, trap_focus};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ModalIds {
@@ -29,42 +26,75 @@ pub enum ModalMsg<Msg> {
     Dismiss,
 }
 
+/**
+ * Focus configuration for a declarative modal.
+ *
+ * Tab and Shift-Tab are handled by the runtime's declarative
+ * `FocusNavigation` against the modal's `FocusScopePolicy::Trap` scope —
+ * they do not flow through `modal_key_msg`. This struct carries only what
+ * the imperative modal keybindings need: Escape dismissal and the
+ * focus-refocus safety net that pulls focus back into the modal if it
+ * somehow escaped the trap scope.
+ */
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ModalFocusConfig<Msg> {
+pub struct ModalFocusConfig {
+    /// Node id of the modal root. Used by the focus-refocus safety net.
     pub scope_root: NodeId,
-    pub focus_order: FocusOrder,
+    /// Focusable node inside the modal that should receive focus when the
+    /// safety net fires.
     pub primary_focus: NodeId,
-    pub tab_forward: Msg,
-    pub tab_backward: Msg,
+    /// Focus order of the modal scope. Retained for introspection and for
+    /// machines that still want to compute it, but no longer used for
+    /// imperative Tab cycling.
+    pub focus_order: FocusOrder,
 }
 
+/// Outcome of an imperative modal keybinding.
+///
+/// `modal_key_msg` only ever produces these two variants — Tab/Shift-Tab
+/// are handled declaratively by the runtime, so there is no `Inner`
+/// variant here.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ModalKeyAction {
+    /// The modal should close.
+    Dismiss,
+    /// Focus escaped the trap scope and should be pulled back to the
+    /// modal's primary focusable node.
+    FocusPrimary,
+}
+
+/// Imperative modal keybindings.
+///
+/// Returns `Some(ModalKeyAction)` only for modal-specific concerns:
+/// - `Escape` → `Dismiss`
+/// - any key while focus is outside the trap scope → `FocusPrimary`
+///   (defensive refocus; with correct `FocusScopePolicy::Trap` semantics
+///   and an open-action that sets focus into the scope, this is a safety
+///   net rather than the primary trapping mechanism).
+///
+/// Returns `None` for everything else — including `Tab` and `Shift-Tab`,
+/// which are handled declaratively by the runtime against the modal's
+/// `FocusScopePolicy::Trap` scope.
 #[must_use]
-pub fn modal_key_msg<Msg: Clone>(
+pub fn modal_key_msg(
     focus: &FocusState,
     open: bool,
     event: KeyEvent,
-    config: &ModalFocusConfig<Msg>,
-) -> Option<ModalMsg<Msg>> {
+    config: &ModalFocusConfig,
+) -> Option<ModalKeyAction> {
     if !open {
         return None;
     }
 
     if trap_focus(focus, config.scope_root, config.primary_focus).is_some() {
-        return Some(ModalMsg::FocusPrimary);
+        return Some(ModalKeyAction::FocusPrimary);
     }
 
-    match event.key {
-        Key::Escape => Some(ModalMsg::Dismiss),
-        Key::Tab if event.shift => {
-            let _ = previous_focus_in_order(focus, &config.focus_order);
-            Some(ModalMsg::Inner(config.tab_backward.clone()))
-        }
-        Key::Tab => {
-            let _ = next_focus_in_order(focus, &config.focus_order);
-            Some(ModalMsg::Inner(config.tab_forward.clone()))
-        }
-        _ => None,
+    if event.key == Key::Escape {
+        return Some(ModalKeyAction::Dismiss);
     }
+
+    None
 }
 
 #[must_use]
@@ -94,15 +124,24 @@ mod tests {
     use crate::{FocusOrder, FocusPath, Key, activation_message};
 
     #[test]
-    fn modal_key_msg_handles_escape_tab_and_focus_trap() {
+    fn modal_key_msg_handles_escape_defocus_safety_net_and_defers_tab() {
+        // After migration: modal_key_msg only handles Escape and the
+        // focus-refocus safety net. Tab/Shift-Tab return None and are
+        // handled declaratively by the runtime against the Trap scope.
         let ids = ModalIds::default();
         let order = FocusOrder::new(vec![ids.dialog, ids.backdrop]);
-        let mut focus = FocusState::new();
-        focus.set(FocusPath::from_vec(vec![ids.root, ids.dialog]));
+        let config = ModalFocusConfig {
+            scope_root: ids.root,
+            focus_order: order,
+            primary_focus: ids.dialog,
+        };
 
+        // Escape dismisses.
+        let mut inside_focus = FocusState::new();
+        inside_focus.set(FocusPath::from_vec(vec![ids.root, ids.dialog]));
         assert_eq!(
             modal_key_msg(
-                &focus,
+                &inside_focus,
                 true,
                 KeyEvent {
                     key: Key::Escape,
@@ -110,19 +149,15 @@ mod tests {
                     alt: false,
                     shift: false,
                 },
-                &ModalFocusConfig {
-                    scope_root: ids.root,
-                    focus_order: order.clone(),
-                    primary_focus: ids.dialog,
-                    tab_forward: 1_u8,
-                    tab_backward: 2_u8,
-                },
+                &config,
             ),
-            Some(ModalMsg::Dismiss)
+            Some(ModalKeyAction::Dismiss)
         );
+
+        // Tab is deferred to the runtime (None).
         assert_eq!(
             modal_key_msg(
-                &focus,
+                &inside_focus,
                 true,
                 KeyEvent {
                     key: Key::Tab,
@@ -130,17 +165,26 @@ mod tests {
                     alt: false,
                     shift: false,
                 },
-                &ModalFocusConfig {
-                    scope_root: ids.root,
-                    focus_order: order.clone(),
-                    primary_focus: ids.dialog,
-                    tab_forward: 1_u8,
-                    tab_backward: 2_u8,
-                },
+                &config,
             ),
-            Some(ModalMsg::Inner(1))
+            None
+        );
+        assert_eq!(
+            modal_key_msg(
+                &inside_focus,
+                true,
+                KeyEvent {
+                    key: Key::Tab,
+                    ctrl: false,
+                    alt: false,
+                    shift: true,
+                },
+                &config,
+            ),
+            None
         );
 
+        // Focus outside the trap scope → any key refocuses (safety net).
         let outside_focus = FocusState::new();
         assert_eq!(
             modal_key_msg(
@@ -152,15 +196,25 @@ mod tests {
                     alt: false,
                     shift: false,
                 },
-                &ModalFocusConfig {
-                    scope_root: ids.root,
-                    focus_order: order,
-                    primary_focus: ids.dialog,
-                    tab_forward: 1_u8,
-                    tab_backward: 2_u8,
-                },
+                &config,
             ),
-            Some(ModalMsg::FocusPrimary)
+            Some(ModalKeyAction::FocusPrimary)
+        );
+
+        // Closed modal produces nothing.
+        assert_eq!(
+            modal_key_msg(
+                &inside_focus,
+                false,
+                KeyEvent {
+                    key: Key::Escape,
+                    ctrl: false,
+                    alt: false,
+                    shift: false,
+                },
+                &config,
+            ),
+            None
         );
     }
 

@@ -119,8 +119,15 @@ impl FocusNavigation {
         backward: bool,
     ) -> Option<NodeId> {
         match (self.policy, backward) {
-            (FocusScopePolicy::Wrap | FocusScopePolicy::Trap, false) => self.order.next(current),
-            (FocusScopePolicy::Wrap | FocusScopePolicy::Trap, true) => self.order.previous(current),
+            // Wrap cycles within the scope and never escapes.
+            (FocusScopePolicy::Wrap, false) => self.order.next(current),
+            (FocusScopePolicy::Wrap, true) => self.order.previous(current),
+            // Trap clamps at scope boundaries: focus may move inside the
+            // scope but can never leave it. This is what distinguishes Trap
+            // from Wrap and lets modal dialogs rely on the declarative
+            // policy instead of imperative trap_focus helpers.
+            (FocusScopePolicy::Trap, false) => self.order.next_non_wrapping(current),
+            (FocusScopePolicy::Trap, true) => self.order.previous_non_wrapping(current),
             (FocusScopePolicy::Local, false) => self.order.next_non_wrapping(current),
             (FocusScopePolicy::Local, true) => self.order.previous_non_wrapping(current),
             (FocusScopePolicy::Passthrough, false) => self
@@ -514,6 +521,80 @@ mod tests {
                 false
             ),
             None
+        );
+    }
+
+    #[test]
+    fn trap_scope_clamps_at_boundaries_instead_of_wrapping() {
+        // Trap semantics: focus must NEVER leave the scope.
+        // Advancing forward at the last element returns None (clamps),
+        // it does NOT wrap back to the first element. Likewise backward
+        // at the first element returns None.
+        // This is what distinguishes Trap from Wrap, and it is what lets
+        // modal dialogs rely on the declarative scope policy instead of
+        // imperative trap_focus helpers.
+        let scene = Scene::<()>::focus_scope_with_policy(
+            1_u64,
+            "trap",
+            FocusScopePolicy::Trap,
+            Scene::column(
+                2_u64,
+                vec![
+                    Scene::text(3_u64, "a").focusable(),
+                    Scene::text(4_u64, "b").focusable(),
+                    Scene::text(5_u64, "c").focusable(),
+                ],
+            ),
+        );
+        let mut focus = FocusState::new();
+        focus.set(FocusPath::from_vec(vec![
+            NodeId::new(1),
+            NodeId::new(2),
+            NodeId::new(5),
+        ]));
+
+        let navigation = FocusNavigation::for_focus(&scene, &focus);
+        assert_eq!(navigation.policy, FocusScopePolicy::Trap);
+        assert_eq!(
+            navigation.order.as_slice(),
+            &[NodeId::new(3), NodeId::new(4), NodeId::new(5)]
+        );
+
+        // Forward at the last element: clamp (None), do NOT wrap to first.
+        assert_eq!(
+            navigation.advance(
+                &FocusOrder::collect_from_scene(&scene),
+                Some(NodeId::new(5)),
+                false
+            ),
+            None
+        );
+
+        // Backward at the first element: clamp (None).
+        let mut first_focus = FocusState::new();
+        first_focus.set(FocusPath::from_vec(vec![
+            NodeId::new(1),
+            NodeId::new(2),
+            NodeId::new(3),
+        ]));
+        let first_nav = FocusNavigation::for_focus(&scene, &first_focus);
+        assert_eq!(
+            first_nav.advance(
+                &FocusOrder::collect_from_scene(&scene),
+                Some(NodeId::new(3)),
+                true
+            ),
+            None
+        );
+
+        // Interior traversal still works.
+        assert_eq!(
+            navigation.advance(
+                &FocusOrder::collect_from_scene(&scene),
+                Some(NodeId::new(4)),
+                false
+            ),
+            Some(NodeId::new(5))
         );
     }
 
