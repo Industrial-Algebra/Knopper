@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{Scene, id::NodeId, scene::FocusScopePolicy};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]

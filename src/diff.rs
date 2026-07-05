@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{NodeId, RenderOp};
 
 #[derive(Debug, Clone, PartialEq, Eq)]

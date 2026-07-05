@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 // Integration tests for the Knopper runtime pipeline.
 //
 // These exercise the full event -> route -> update -> effect -> reproject

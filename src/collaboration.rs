@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 // Collaboration-ready semantic types for multi-participant Knopper sessions.
 //
 // These types are the canonical payload for a collaborative machine's `Shared`

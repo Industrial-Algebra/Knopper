@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{annotation::Annotation, id::NodeId, style::Style};
 use cliffy_core::{FromGeometric, GA3, IntoGeometric};
 

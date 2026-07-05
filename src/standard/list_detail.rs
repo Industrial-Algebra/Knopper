@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{
     Effect, FocusState, KeyEvent, Machine, Scene, SceneBehavior, Style, dispatch_if_focused,
     project_child,

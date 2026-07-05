@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{
     Color, Effect, FocusState, KeyEvent, LayoutNode, ListIds, Machine, NodeId, Padding, Scene,
     SceneBehavior, SizeConstraint, Style, child_has_focus, dispatch_if_focused, modal_key_msg,

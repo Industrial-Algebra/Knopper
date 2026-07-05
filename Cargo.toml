@@ -3,6 +3,9 @@ name = "Knopper"
 version = "0.1.0"
 edition = "2024"
 default-run = "Knopper"
+license = "Apache-2.0"
+repository = "https://github.com/Industrial-Algebra/Knopper"
+description = "Functional-reactive terminal UI framework with a machine-centered model and a scene algebra, designed multi-user from the ground up."
 
 [lib]
 name = "knopper"

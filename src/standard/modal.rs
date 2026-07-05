@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{Anchor, FocusOrder, FocusState, Key, KeyEvent, NodeId, Padding, Scene, trap_focus};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

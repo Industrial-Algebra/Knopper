@@ -129,6 +129,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for workflow and coding guidelines.
 - [docs/guides/07-reusable-composition-patterns.md](docs/guides/07-reusable-composition-patterns.md)
 - [docs/guides/08-runtime-event-policy.md](docs/guides/08-runtime-event-policy.md)
 
+## Release
+
+- [docs/release-0.1.0.md](docs/release-0.1.0.md) — 0.1.0 cut checklist, API review, draft release notes
+
 ## Architecture
 
 Architecture drafts:

@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{
     ButtonContext, ButtonMachine, ButtonMsg, ButtonState, Color, Effect, FocusPath,
     FocusScopePolicy, FocusState, InputContext, InputMachine, InputMsg, InputState, KeyEvent,
