@@ -82,6 +82,11 @@ Optional Notcurses-backed rendering during the raw host:
 cargo run --features notcurses -- --notcurses
 ```
 
+The `notcurses` feature links against the **system** notcurses library.
+Install the development package first (e.g.
+`apt install libnotcurses-dev` on Debian/Ubuntu, or the equivalent for your
+system). CI installs this automatically.```
+
 If you want the older command-driven shell instead, use:
 
 ```bash
