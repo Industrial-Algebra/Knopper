@@ -9,7 +9,6 @@ dependencies = [
  "cliffy-core",
  "crossterm",
  "notcurses",
- "pkg-config",
  "rayon",
 ]
 

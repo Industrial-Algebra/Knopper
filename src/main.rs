@@ -128,7 +128,9 @@ fn run_shell(
     ctx: &DemoContext,
     bounds: Rect,
     runtime: &mut Runtime<DemoMachine>,
-    #[allow(unused_variables)] mut backend: DemoBackend<'_>,
+    #[cfg_attr(not(feature = "notcurses"), allow(unused_mut))]
+    #[allow(unused_variables)]
+    mut backend: DemoBackend<'_>,
 ) {
     let stdin = io::stdin();
     loop {
@@ -166,7 +168,9 @@ fn run_raw_host(
     mut ctx: DemoContext,
     mut bounds: Rect,
     runtime: &mut Runtime<DemoMachine>,
-    #[allow(unused_variables)] mut backend: DemoBackend<'_>,
+    #[cfg_attr(not(feature = "notcurses"), allow(unused_mut))]
+    #[allow(unused_variables)]
+    mut backend: DemoBackend<'_>,
 ) -> io::Result<()> {
     let mut stdout = io::stdout();
     let using_notcurses = backend.is_some();
@@ -888,7 +892,9 @@ fn run_review_raw_host(
     mut ctx: ReviewDemoContext,
     mut bounds: Rect,
     runtime: &mut Runtime<ReviewDemoMachine>,
-    #[allow(unused_variables)] mut backend: DemoBackend<'_>,
+    #[cfg_attr(not(feature = "notcurses"), allow(unused_mut))]
+    #[allow(unused_variables)]
+    mut backend: DemoBackend<'_>,
 ) -> io::Result<()> {
     let mut stdout = io::stdout();
     let using_notcurses = backend.is_some();

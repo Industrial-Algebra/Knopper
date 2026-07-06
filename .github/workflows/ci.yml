@@ -7,16 +7,16 @@ on:
   pull_request:
 
 jobs:
-  rust:
-    name: fmt-clippy-test
+  # Core quality gate — runs on default features with no native deps.
+  # This is the contract downstream consumes and the check that blocks
+  # merges via branch protection.
+  core:
+    name: core (fmt-clippy-test)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install notcurses system library
-        run: sudo apt-get update && sudo apt-get install -y libnotcurses-dev
 
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -29,8 +29,39 @@ jobs:
       - name: cargo fmt --all --check
         run: cargo fmt --all --check
 
-      - name: cargo clippy --all-targets --all-features -- -D warnings
-        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: cargo clippy --all-targets -- -D warnings
+        run: cargo clippy --all-targets -- -D warnings
 
-      - name: cargo test --all-features
-        run: cargo test --all-features
+      - name: cargo test
+        run: cargo test
+
+  # Optional notcurses feature verification. The notcurses backend links
+  # against the system notcurses library, whose packaged version varies by
+  # distro and may lag the version the notcurses crate expects. This job is
+  # informational: it reports whether the feature builds against the
+  # runner's system notcurses but does not block merges.
+  notcurses:
+    name: notcurses (feature build)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Install notcurses system library
+        run: sudo apt-get update && sudo apt-get install -y libnotcurses-dev
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: cargo clippy --features notcurses -- -D warnings
+        run: cargo clippy --all-targets --features notcurses -- -D warnings
+
+      - name: cargo build --features notcurses
+        run: cargo build --features notcurses
