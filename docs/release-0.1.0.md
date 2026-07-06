@@ -76,7 +76,15 @@ feature-gate behind an `examples` or `demo` feature, or move under
 - [x] License headers on every `.rs` file (Apache-2.0)
 - [x] `LICENSE` file present (Apache-2.0)
 - [x] `Cargo.toml` declares `license`, `repository`, `description`
-- [x] Quality gate green (fmt / clippy -D warnings / test)
+- [x] Quality gate green (fmt / clippy -D warnings / test) — see CI note below
+
+> **CI note.** The mandatory `core (fmt-clippy-test)` job runs on default
+> features (no native deps) and is what branch protection requires. The
+> notcurses backend builds against the runner's system notcurses in a
+> separate `continue-on-error` job; it reports but does not block, because
+> packaged notcurses versions vary by distro and may lag what the notcurses
+> crate expects. The notcurses feature is verified locally with a recent
+> system notcurses (>= 3.0.11).
 - [ ] **Confirm licensing choice with maintainer** (Apache-2.0 assumed per
       IA standard for framework crates and matching the Schubert dependency;
       see `ia-licensing` skill)
