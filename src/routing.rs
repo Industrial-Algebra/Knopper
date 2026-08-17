@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{
     FocusNavigation, FocusOrder, FocusPath, FocusState, Interaction, NodeId, RuntimeEvent, Scene,
 };
@@ -61,7 +64,7 @@ pub fn activation_message<Msg: Clone>(scene: &Scene<Msg>, target: NodeId) -> Opt
     match scene {
         Scene::Empty => None,
         Scene::Text(node) => {
-            if node.meta.id == target {
+            if node.meta.id == target && !node.meta.disabled {
                 match &node.interaction {
                     Interaction::None => None,
                     Interaction::Activate(msg) => Some(msg.clone()),
@@ -225,6 +228,16 @@ mod tests {
         );
 
         assert_eq!(routed, RoutedEvent::Message("run"));
+    }
+
+    #[test]
+    fn activation_skips_disabled_nodes() {
+        let scene = Scene::<u8>::text(2_u64, "x").disabled().on_activate(7_u8);
+        assert_eq!(activation_message(&scene, NodeId::new(2)), None);
+
+        // Non-disabled still activates.
+        let active = Scene::<u8>::text(3_u64, "y").on_activate(9_u8);
+        assert_eq!(activation_message(&active, NodeId::new(3)), Some(9_u8));
     }
 
     #[test]

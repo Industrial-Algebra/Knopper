@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{Effect, LayoutNode, Scene};
 use cliffy_core::{Behavior, FromGeometric, IntoGeometric, behavior};
 use core::marker::PhantomData;

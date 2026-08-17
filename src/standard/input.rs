@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{
     Color, Effect, Key, KeyEvent, LayoutNode, Machine, NodeId, Role, Scene, SceneBehavior,
     SizeConstraint, Style, find_node,

@@ -82,6 +82,11 @@ Optional Notcurses-backed rendering during the raw host:
 cargo run --features notcurses -- --notcurses
 ```
 
+The `notcurses` feature links against the **system** notcurses library.
+Install the development package first (e.g.
+`apt install libnotcurses-dev` on Debian/Ubuntu, or the equivalent for your
+system). CI installs this automatically.```
+
 If you want the older command-driven shell instead, use:
 
 ```bash
@@ -127,6 +132,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for workflow and coding guidelines.
 - [docs/guides/05-walkthrough-demo-workspace.md](docs/guides/05-walkthrough-demo-workspace.md)
 - [docs/guides/06-running-the-interactive-demo.md](docs/guides/06-running-the-interactive-demo.md)
 - [docs/guides/07-reusable-composition-patterns.md](docs/guides/07-reusable-composition-patterns.md)
+- [docs/guides/08-runtime-event-policy.md](docs/guides/08-runtime-event-policy.md)
+
+## Release
+
+- [docs/release-0.1.0.md](docs/release-0.1.0.md) — 0.1.0 cut checklist, API review, draft release notes
 
 ## Architecture
 
@@ -147,6 +157,8 @@ Architecture drafts:
 - [docs/roadmap/02-standard-machine-collaboration-audit.md](docs/roadmap/02-standard-machine-collaboration-audit.md)
 - [docs/roadmap/03-participant-local-presence-overlays.md](docs/roadmap/03-participant-local-presence-overlays.md)
 - [docs/roadmap/04-textarea-editor-design.md](docs/roadmap/04-textarea-editor-design.md)
+- [docs/roadmap/05-distributed-correctness-schubert.md](docs/roadmap/05-distributed-correctness-schubert.md)
+- [docs/roadmap/06-collaboration-ready-contract.md](docs/roadmap/06-collaboration-ready-contract.md)
 
 ## Engineering baseline
 
