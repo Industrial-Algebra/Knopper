@@ -603,11 +603,8 @@ impl Machine for ReviewDemoMachine {
         layout: &crate::LayoutNode,
     ) -> Option<(u16, u16)> {
         let mut focus = FocusState::new();
-        if let Some(path) = model.focused.clone() {
-            focus.set(path);
-        } else {
-            return None;
-        }
+        let path = model.focused.clone()?;
+        focus.set(path);
 
         if child_has_focus(&focus, self.query.root_id(&ctx.query)) {
             self.query

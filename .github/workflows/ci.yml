@@ -49,8 +49,11 @@ jobs:
 
     steps:
       - name: Install build dependencies
+        # Arch mirrors rotate fast; a full sync+upgrade first avoids 404s
+        # from stale package indexes.
         run: >
-          pacman -Sy --noconfirm --needed
+          pacman -Syu --noconfirm &&
+          pacman -S --noconfirm --needed
           base-devel clang pkgconf notcurses rust git
 
       - name: Checkout

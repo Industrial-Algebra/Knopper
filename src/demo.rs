@@ -773,11 +773,8 @@ impl Machine for DemoMachine {
         layout: &crate::LayoutNode,
     ) -> Option<(u16, u16)> {
         let mut focus = FocusState::new();
-        if let Some(path) = model.focused.clone() {
-            focus.set(path);
-        } else {
-            return None;
-        }
+        let path = model.focused.clone()?;
+        focus.set(path);
 
         if model.palette.open {
             if child_has_focus(&focus, self.palette.input_root_id(&ctx.palette)) {
