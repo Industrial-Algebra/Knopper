@@ -35,27 +35,26 @@ jobs:
       - name: cargo test
         run: cargo test
 
-  # Optional notcurses feature verification. The notcurses backend links
-  # against the system notcurses library, whose packaged version varies by
-  # distro and may lag the version the notcurses crate expects. This job is
-  # informational: it reports whether the feature builds against the
-  # runner's system notcurses but does not block merges.
+  # Notcurses feature verification. The notcurses backend links against the
+  # system notcurses library. libnotcurses-sys 3.11.0 requires notcurses
+  # >= 3.0.11, but Ubuntu 24.04 ships only 3.0.7, so this job runs in an
+  # Arch Linux container, which packages a current notcurses. The notcurses
+  # crate's own vendored feature is not usable here: it ships pregenerated
+  # Rust bindings only (no C source) and emits no link directives, which
+  # leaves every ncplane_* symbol undefined at link time.
   notcurses:
     name: notcurses (feature build)
     runs-on: ubuntu-latest
-    continue-on-error: true
+    container: archlinux:latest
 
     steps:
+      - name: Install build dependencies
+        run: >
+          pacman -Sy --noconfirm --needed
+          base-devel clang pkgconf notcurses rust git
+
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-
-      - name: Install notcurses system library
-        run: sudo apt-get update && sudo apt-get install -y libnotcurses-dev
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
@@ -63,5 +62,5 @@ jobs:
       - name: cargo clippy --features notcurses -- -D warnings
         run: cargo clippy --all-targets --features notcurses -- -D warnings
 
-      - name: cargo build --features notcurses
-        run: cargo build --features notcurses
+      - name: cargo test --features notcurses
+        run: cargo test --features notcurses
