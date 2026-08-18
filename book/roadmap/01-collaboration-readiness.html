@@ -1,0 +1,544 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Collaboration readiness - Knopper</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A functional-reactive terminal UI framework and collaboration substrate">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-b72bc1d4.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-c4721d90.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Knopper</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/Industrial-Algebra/Knopper" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/Industrial-Algebra/Knopper/edit/develop/docs/docs/roadmap/01-collaboration-readiness.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="knopper-collaboration-readiness-guide"><a class="header" href="#knopper-collaboration-readiness-guide">Knopper collaboration-readiness guide</a></h1>
+<h2 id="purpose"><a class="header" href="#purpose">Purpose</a></h2>
+<p>This document defines the collaboration-readiness contract for Knopper prior to a full collaborative runtime.</p>
+<p>It exists to ensure that ongoing work on focus, runtime policy, standard machines, layout, and rendering does not accidentally hardcode single-user assumptions into APIs that downstream IA projects will depend on.</p>
+<p>This is not yet a full protocol or distributed-runtime spec. It is a design guardrail document for getting Knopper to a useful first release while preserving its core differentiator: semantic collaborative TUI architecture.</p>
+<h2 id="core-stance"><a class="header" href="#core-stance">Core stance</a></h2>
+<p>Knopper should be useful as a single-user framework in <code>0.1.0</code>, but it must be designed as a collaboration-capable framework from the start.</p>
+<p>That means:</p>
+<ul>
+<li>single-user behavior may be the initial default</li>
+<li>collaboration does not need to be fully implemented in <code>0.1.0</code></li>
+<li>but all major APIs should preserve the ability to layer in:
+<ul>
+<li>replicated shared state</li>
+<li>participant-local state</li>
+<li>presence overlays</li>
+<li>remote cursors and selections</li>
+<li>convergence-aware update flows</li>
+</ul>
+</li>
+</ul>
+<h2 id="collaboration-ready-invariants"><a class="header" href="#collaboration-ready-invariants">Collaboration-ready invariants</a></h2>
+<p>The following invariants should guide all near-term implementation work.</p>
+<h3 id="1-preserve-state-separation"><a class="header" href="#1-preserve-state-separation">1. Preserve state separation</a></h3>
+<p>Knopper already has the right high-level split in the <code>Machine</code> trait:</p>
+<ul>
+<li><code>Model</code></li>
+<li><code>Shared</code></li>
+<li><code>project(model, shared, ctx) -&gt; Behavior&lt;Scene&lt;Msg&gt;&gt;</code></li>
+</ul>
+<p>For collaboration readiness, this split must remain semantically meaningful.</p>
+<h4 id="model"><a class="header" href="#model"><code>Model</code></a></h4>
+<p>Represents local machine state.</p>
+<p>Typical examples:</p>
+<ul>
+<li>local focus path</li>
+<li>local viewport position when purely participant-specific</li>
+<li>local editor cursor if not intentionally shared</li>
+<li>transient input editing mechanics</li>
+<li>IME or composition state</li>
+<li>local animation and blink state</li>
+</ul>
+<h4 id="shared"><a class="header" href="#shared"><code>Shared</code></a></h4>
+<p>Represents replicated or externally synchronized semantic state.</p>
+<p>Typical examples:</p>
+<ul>
+<li>document contents</li>
+<li>shared task state</li>
+<li>shared command history</li>
+<li>replicated annotations</li>
+<li>participant presence registry</li>
+<li>shared selection model when the application intends that to converge</li>
+</ul>
+<h4 id="derived-projection"><a class="header" href="#derived-projection">Derived projection</a></h4>
+<p>The projected scene should remain a pure function of:</p>
+<ul>
+<li>local model</li>
+<li>shared state</li>
+<li>context</li>
+</ul>
+<p>This is the seam where collaborative overlays will eventually appear.</p>
+<h3 id="2-do-not-collapse-local-and-shared-concerns-for-convenience"><a class="header" href="#2-do-not-collapse-local-and-shared-concerns-for-convenience">2. Do not collapse local and shared concerns for convenience</a></h3>
+<p>A machine should not store shared semantic truth in <code>Model</code> just because a single-user demo is easier that way.</p>
+<p>If a piece of state is expected to become replicated in downstream applications, prefer one of the following:</p>
+<ul>
+<li>keep it in <code>Shared</code></li>
+<li>document why it is currently local-only</li>
+<li>design the machine so a future shared-backed variant does not require a conceptual rewrite</li>
+</ul>
+<h3 id="3-treat-focus-as-participant-local-by-default"><a class="header" href="#3-treat-focus-as-participant-local-by-default">3. Treat focus as participant-local by default</a></h3>
+<p>Current Knopper focus behavior should be understood as local-to-one-runtime, not globally authoritative.</p>
+<p>For future collaboration:</p>
+<ul>
+<li>each participant may have their own focus path</li>
+<li>local focus traversal should not imply globally shared focus ownership</li>
+<li>remote focus may be rendered as presence or annotation overlays rather than replacing local focus</li>
+</ul>
+<p>Therefore, current focus APIs should avoid assumptions like:</p>
+<ul>
+<li>there is exactly one globally meaningful focus state for an application</li>
+<li>focus changes inherently mutate shared application state</li>
+</ul>
+<p>The current <code>Runtime</code>-owned <code>FocusState</code> is acceptable for now as a local participant runtime concern.</p>
+<h3 id="4-distinguish-local-editing-mechanics-from-shared-semantic-edits"><a class="header" href="#4-distinguish-local-editing-mechanics-from-shared-semantic-edits">4. Distinguish local editing mechanics from shared semantic edits</a></h3>
+<p>Some controls, especially text-oriented ones, need careful separation.</p>
+<p>For example, an input or editor may involve:</p>
+<ul>
+<li>local cursor position</li>
+<li>local in-progress composition state</li>
+<li>shared document content</li>
+<li>remote selections/cursors</li>
+</ul>
+<p>For <code>0.1.0</code>, a simple local input control is acceptable, but its public API should not imply that all editing state must always be local and isolated.</p>
+<h3 id="5-keep-scene-identity-stable-and-semantic"><a class="header" href="#5-keep-scene-identity-stable-and-semantic">5. Keep scene identity stable and semantic</a></h3>
+<p>Collaboration overlays depend on stable anchors.</p>
+<p>That means <code>NodeId</code> usage should continue to favor semantic stability over incidental render-time convenience.</p>
+<p>Stable scene identities are important for:</p>
+<ul>
+<li>remote cursor anchoring</li>
+<li>participant presence indicators</li>
+<li>shared selection ranges</li>
+<li>conflict indicators</li>
+<li>attachment of replicated annotations to semantic surfaces</li>
+</ul>
+<h3 id="6-keep-runtime-and-renderer-state-unshared-by-default"><a class="header" href="#6-keep-runtime-and-renderer-state-unshared-by-default">6. Keep runtime and renderer state unshared by default</a></h3>
+<p>The renderer/backend layer should remain local.</p>
+<p>Do not design collaboration around sharing:</p>
+<ul>
+<li>terminal byte streams</li>
+<li>renderer surface caches</li>
+<li>Notcurses plane state</li>
+<li>local layout caches</li>
+<li>terminal dimensions</li>
+</ul>
+<p>Collaboration should synchronize semantic state, not terminal implementation details.</p>
+<h2 id="state-taxonomy-for-implementation-work"><a class="header" href="#state-taxonomy-for-implementation-work">State taxonomy for implementation work</a></h2>
+<p>When introducing a new machine or runtime feature, classify its state into one of four buckets.</p>
+<h3 id="a-local-ephemeral-state"><a class="header" href="#a-local-ephemeral-state">A. Local ephemeral state</a></h3>
+<p>Not replicated by default.</p>
+<p>Examples:</p>
+<ul>
+<li>local focus</li>
+<li>local cursor blink</li>
+<li>local scroll offset when viewport is participant-specific</li>
+<li>local measurement caches</li>
+<li>local theme</li>
+<li>temporary drag/selection mechanics</li>
+</ul>
+<h3 id="b-shared-replicated-state"><a class="header" href="#b-shared-replicated-state">B. Shared replicated state</a></h3>
+<p>Semantically convergent and intended to sync.</p>
+<p>Examples:</p>
+<ul>
+<li>document data</li>
+<li>shared command registry state</li>
+<li>synchronized task graph</li>
+<li>shared annotations</li>
+<li>participant roster</li>
+<li>remote-presence metadata</li>
+</ul>
+<h3 id="c-participant-local-published-state"><a class="header" href="#c-participant-local-published-state">C. Participant-local published state</a></h3>
+<p>Participant-owned state that may be published to others, but is not the same thing as global shared truth.</p>
+<p>Examples:</p>
+<ul>
+<li>remote cursor positions</li>
+<li>remote selection highlights</li>
+<li>participant viewport anchors</li>
+<li>presence status</li>
+<li>active participant tool/mode</li>
+</ul>
+<p>This category is especially important because it often gets confused with either purely local state or globally shared state.</p>
+<h3 id="d-derived-presentation-state"><a class="header" href="#d-derived-presentation-state">D. Derived presentation state</a></h3>
+<p>Computed from local, shared, and participant-local inputs.</p>
+<p>Examples:</p>
+<ul>
+<li>remote cursor overlays</li>
+<li>presence bars</li>
+<li>divergence markers</li>
+<li>sync badges</li>
+<li>“Alice is editing here” indicators</li>
+</ul>
+<h2 id="implications-for-current-core-apis"><a class="header" href="#implications-for-current-core-apis">Implications for current core APIs</a></h2>
+<h2 id="machine"><a class="header" href="#machine"><code>Machine</code></a></h2>
+<p>The current trait is directionally correct:</p>
+<ul>
+<li><code>Model</code> already gives a local state lane</li>
+<li><code>Shared</code> already gives a replicated/shared lane</li>
+<li>projection already combines them</li>
+</ul>
+<p>Near-term guidance:</p>
+<ul>
+<li>preserve this split in all standard machines</li>
+<li>avoid adding convenience APIs that implicitly erase the distinction</li>
+<li>when a machine only uses <code>Shared = ()</code> today, document whether that is fundamentally local or merely a first-pass simplification</li>
+</ul>
+<h2 id="runtime"><a class="header" href="#runtime"><code>Runtime</code></a></h2>
+<p>Current <code>Runtime</code> is a local runtime for one participant session.</p>
+<p>That is acceptable for now.</p>
+<p>Near-term guidance:</p>
+<ul>
+<li>treat <code>focus</code> as local runtime state</li>
+<li>treat renderer/backend state as local runtime state</li>
+<li>keep <code>set_shared(...)</code> as an important seam for externally synchronized updates</li>
+<li>avoid assuming that all meaningful state transitions originate from a single local input stream forever</li>
+</ul>
+<p>Longer-term direction:</p>
+<ul>
+<li>a collaboration-capable runtime may ingest remote shared-state updates and participant presence streams alongside local events</li>
+</ul>
+<h2 id="scene"><a class="header" href="#scene"><code>Scene</code></a></h2>
+<p>The scene model should continue to represent semantic UI structure, not terminal implementation details.</p>
+<p>Near-term guidance:</p>
+<ul>
+<li>focus scopes should be structural and semantic</li>
+<li>annotations should remain viable anchors for future collaboration overlays</li>
+<li>do not overload scene wrappers with assumptions that only make sense for single-user rendering</li>
+</ul>
+<h2 id="nodeid"><a class="header" href="#nodeid"><code>NodeId</code></a></h2>
+<p>Node identity should remain stable where possible across reprojection.</p>
+<p>Near-term guidance:</p>
+<ul>
+<li>prefer semantically derived IDs for persistent surfaces</li>
+<li>avoid unstable IDs when they would break overlay anchoring or patch coherence</li>
+</ul>
+<h2 id="standard-machine-guidance"><a class="header" href="#standard-machine-guidance">Standard-machine guidance</a></h2>
+<h2 id="listmachine"><a class="header" href="#listmachine"><code>ListMachine</code></a></h2>
+<p>Current state:</p>
+<ul>
+<li><code>selected</code></li>
+<li><code>scroll</code></li>
+</ul>
+<p>Collaboration guidance:</p>
+<ul>
+<li><code>scroll</code> is usually participant-local</li>
+<li><code>selected</code> may be local or shared depending on application semantics</li>
+<li>therefore <code>ListMachine</code> should not be documented as inherently owning globally shared selection semantics</li>
+</ul>
+<p>Downstream expectation:</p>
+<ul>
+<li>it should remain possible to wrap or adapt the machine so selection comes from shared state when desired</li>
+</ul>
+<h2 id="inputmachine"><a class="header" href="#inputmachine"><code>InputMachine</code></a></h2>
+<p>Current state:</p>
+<ul>
+<li><code>value</code></li>
+<li><code>cursor</code></li>
+<li><code>committed</code></li>
+</ul>
+<p>Collaboration guidance:</p>
+<ul>
+<li>this is acceptable as a local-first control for <code>0.1.0</code></li>
+<li>but it should be described as a local input field, not as the final abstraction for collaborative text editing</li>
+<li>future collaborative editors will likely separate:
+<ul>
+<li>shared text content</li>
+<li>participant-local cursor/composition state</li>
+<li>published remote cursor/selection state</li>
+</ul>
+</li>
+</ul>
+<h2 id="modal-and-command-palette-behavior"><a class="header" href="#modal-and-command-palette-behavior">Modal and command palette behavior</a></h2>
+<p>Collaboration guidance:</p>
+<ul>
+<li>modal open/closed state may be local or shared depending on application semantics</li>
+<li>focus within modals should remain participant-local by default</li>
+<li>remote participants should not implicitly steal local modal focus</li>
+</ul>
+<h2 id="questions-to-ask-for-every-new-machine"><a class="header" href="#questions-to-ask-for-every-new-machine">Questions to ask for every new machine</a></h2>
+<p>Before merging a new standard machine, answer these questions.</p>
+<ol>
+<li>Which parts of this machine’s state are strictly local?</li>
+<li>Which parts might be shared in a collaborative application?</li>
+<li>Which parts are participant-local but publishable to others?</li>
+<li>Does the public API accidentally assume a single global focus or selection owner?</li>
+<li>Could a downstream project adapt this machine to shared state without changing the core abstraction?</li>
+<li>Are node identities stable enough for overlays and presence indicators?</li>
+</ol>
+<h2 id="questions-to-ask-for-every-runtime-feature"><a class="header" href="#questions-to-ask-for-every-runtime-feature">Questions to ask for every runtime feature</a></h2>
+<ol>
+<li>Is this runtime state local, shared, participant-local, or derived?</li>
+<li>Does this behavior assume a single participant is authoritative?</li>
+<li>If a remote update arrives, is there a clean seam for integrating it?</li>
+<li>Does the behavior belong in semantic state or only in local rendering/runtime state?</li>
+<li>Will this make future collaboration overlays harder to express?</li>
+</ol>
+<h2 id="minimum-collaboration-readiness-bar-for-010"><a class="header" href="#minimum-collaboration-readiness-bar-for-010">Minimum collaboration-readiness bar for <code>0.1.0</code></a></h2>
+<p>Knopper <code>0.1.0</code> should satisfy the following minimum bar.</p>
+<h3 id="must-have"><a class="header" href="#must-have">Must have</a></h3>
+<ul>
+<li>explicit documentation of local vs shared state lanes</li>
+<li>a runtime model that can accept external shared-state updates</li>
+<li>standard machines that do not unnecessarily hardcode single-user semantics into public contracts</li>
+<li>focus treated as local participant state</li>
+<li>stable semantic scene/node identity conventions</li>
+</ul>
+<h3 id="should-have"><a class="header" href="#should-have">Should have</a></h3>
+<ul>
+<li>examples or notes showing how shared state would feed projection</li>
+<li>at least one documented downstream integration pattern for collaborative applications</li>
+<li>explicit notes on participant-local published state such as remote presence/cursors</li>
+</ul>
+<h3 id="not-required-yet"><a class="header" href="#not-required-yet">Not required yet</a></h3>
+<ul>
+<li>full multi-user runtime implementation</li>
+<li>wire protocol integration</li>
+<li>CRDT-backed editors in-tree</li>
+<li>complete remote-presence rendering system</li>
+</ul>
+<h2 id="recommended-near-term-follow-up-work"><a class="header" href="#recommended-near-term-follow-up-work">Recommended near-term follow-up work</a></h2>
+<ol>
+<li>audit existing standard machines against this document</li>
+<li>annotate roadmap tasks with collaboration-readiness checks</li>
+<li>keep focus policy work explicitly participant-local by default</li>
+<li>write one small design note on participant-local presence overlays</li>
+<li>ensure the first polished demo does not imply that all state is single-user-owned</li>
+</ol>
+<h2 id="contract-for-downstream-ia-projects"><a class="header" href="#contract-for-downstream-ia-projects">Contract for downstream IA projects</a></h2>
+<p>Downstream projects should be able to rely on the following:</p>
+<ul>
+<li>Knopper’s core model is intentionally split between local model state and shared state</li>
+<li>current runtime focus behavior is participant-local, not a claim about global collaborative focus</li>
+<li>scene projection is the intended place to combine local, shared, and future collaboration-oriented overlays</li>
+<li>the first-release API is being shaped to avoid a later architectural inversion when collaborative features deepen</li>
+</ul>
+<p>That is the key meaning of collaboration-readiness for the first release.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../roadmap/00-first-release-roadmap.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../roadmap/02-standard-machine-collaboration-audit.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../roadmap/00-first-release-roadmap.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../roadmap/02-standard-machine-collaboration-audit.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

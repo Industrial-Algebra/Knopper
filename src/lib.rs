@@ -30,6 +30,9 @@ pub use backend::{
     BackendCommand, BackendEntry, BackendState, MockBackend, TerminalBackend, backend_commands,
 };
 pub use collaboration::{ParticipantId, ParticipantRoster, Presence, PresenceTone};
+// Re-exported so hosts implementing custom `Model` / `Shared` types do not
+// need a direct cliffy-core dependency (embedding contract §3).
+pub use cliffy_core::{FromGeometric, GA3, IntoGeometric};
 pub use compose::{
     child_has_focus, dispatch_if_focused, map_effect, project_child, trap_focus, update_child,
 };
