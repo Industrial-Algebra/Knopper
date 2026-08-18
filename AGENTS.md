@@ -30,9 +30,13 @@ feature/* ──PR──▶ develop ──release PR──▶ main ──tag v*�
 ### Branch Protection
 
 Both `main` and `develop` have:
-- Required status checks (Format, Clippy, Test, Documentation)
+- Required status checks (Format, Clippy, Test, Documentation, Book (mdbook))
 - `allow_force_pushes: false`
 - `allow_deletions: false`
+- PRs required; **0 required approvals** and `enforce_admins: false` —
+  Knopper is currently solo-maintained, and GitHub does not let you approve
+  PRs opened under your own account. When a second maintainer arrives,
+  restore 1 required approval (Borsalino's setting).
 
 ### CI Layout
 
