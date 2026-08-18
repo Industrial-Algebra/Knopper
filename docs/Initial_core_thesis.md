@@ -84,7 +84,7 @@ Or more strongly typed:
     ));                                                                                                                            
 ```
  
-This is much more terminal-native than fake <div><span> structures.
+This is much more terminal-native than fake `<div><span>` structures.
 
 ### 3. Projection layer
 
@@ -201,8 +201,8 @@ You may also want a more explicit machine form:
 with:
 - init() -> Model
 - update(msg, model) -> Model
-- view(model) -> Scene<Msg>
-- subscriptions(model) -> Stream<Msg>
+- view(model) -> `Scene<Msg>`
+- subscriptions(model) -> `Stream<Msg>`
 
 That looks Elm-ish, but the internal execution can still be Cliffy/Orlando-based rather than TEA-style message loops.
 
@@ -234,8 +234,8 @@ Best use:
 #### cliffy-core
 
 Use for:
-- Behavior<T>
-- Event<T>
+- `Behavior<T>`
+- `Event<T>`
 - combinators
 - maybe geometric state for:
   - cursor/focus trajectories
