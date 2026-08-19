@@ -1,0 +1,857 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Core thesis - Knopper</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A functional-reactive terminal UI framework and collaboration substrate">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "searchindex-b72bc1d4.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="toc-c4721d90.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Knopper</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/Industrial-Algebra/Knopper" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/Industrial-Algebra/Knopper/edit/develop/docs/docs/Initial_core_thesis.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h2 id="core-thesis"><a class="header" href="#core-thesis">Core thesis</a></h2>
+<h3 id="knopper-should-be"><a class="header" href="#knopper-should-be">Knopper should be:</a></h3>
+<ul>
+<li>a functional-reactive TUI framework</li>
+<li>with a terminal-native rendering engine</li>
+<li>backed by Notcurses</li>
+<li>using Cliffy for reactive/geometric state and collaborative state</li>
+<li>using Orlando for compositional transformation/projection pipelines</li>
+<li>using Karpal for lawful algebraic structures, optics, and composition</li>
+</ul>
+<h3 id="and-it-should-not-be"><a class="header" href="#and-it-should-not-be">And it should not be:</a></h3>
+<ul>
+<li>“React, but in the terminal”</li>
+<li>a virtual DOM clone</li>
+<li>a JSX-first framework</li>
+<li>a widget toolkit with ad hoc mutable internals</li>
+</ul>
+<p>That distinction is important. Ink’s ergonomics are appealing, but its mental model is still very React-shaped. Knopper can instead be:</p>
+<p>│ A reactive algebra for terminal scene construction and projection.</p>
+<p>───────────────────────────────────────────────────────────────────────────────</p>
+<h3 id="recommended-architectural-shape"><a class="header" href="#recommended-architectural-shape">Recommended architectural shape</a></h3>
+<p>I’d split Knopper conceptually into 5 layers:</p>
+<h3 id="1-reactive-domain-layer"><a class="header" href="#1-reactive-domain-layer">1. Reactive domain layer</a></h3>
+<p>This is the app/component state model.</p>
+<p>Likely built around:</p>
+<ul>
+<li><code>Behavior&lt;T&gt;</code> / <code>Event&lt;T&gt;</code> from cliffy-core</li>
+<li>possibly Orlando <code>Signal&lt;T&gt;</code> / <code>Stream&lt;T&gt;</code> ideas where useful</li>
+<li>optics from Karpal for focused updates</li>
+<li>algebraic state transitions</li>
+</ul>
+<p>This layer should know nothing about Notcurses.</p>
+<h3 id="2-component-algebra-layer"><a class="header" href="#2-component-algebra-layer">2. Component algebra layer</a></h3>
+<p>This is the novel part. Instead of “components return JSX”, components should produce a terminal scene description.</p>
+<p>Something like:</p>
+<ul>
+<li>Text</li>
+<li>Span</li>
+<li>Row</li>
+<li>Column</li>
+<li>Grid</li>
+<li>Box</li>
+<li>Layer</li>
+<li>Viewport</li>
+<li>List</li>
+<li>Input</li>
+<li>Canvas</li>
+<li>Overlay</li>
+<li>Conditional</li>
+<li>Dynamic</li>
+<li>Portal maybe</li>
+</ul>
+<p>This should be a typed algebraic DSL, not HTML-shaped. Example direction:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>    let ui = column([
+        text("Knopper"),
+        row([
+            sidebar(files_view),
+            panel(editor_view),
+        ]),
+        status_bar(status_text),
+    ]);
+<span class="boring">}</span></code></pre>
+<p>Or more strongly typed:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>    let ui = col((                                                                                                                 
+       header(title("Knopper")),
+       row((
+           pane(files()),
+           pane(editor()),                                                                                                        
+       )),
+       footer(status()),
+    ));                                                                                                                            
+<span class="boring">}</span></code></pre>
+<p>This is much more terminal-native than fake <code>&lt;div&gt;&lt;span&gt;</code> structures.</p>
+<h3 id="3-projection-layer"><a class="header" href="#3-projection-layer">3. Projection layer</a></h3>
+<p>This is where your “stand-alone Cliffy pattern” matters.</p>
+<p>A component should not directly mutate terminal planes. It should project into a scene graph or render graph.</p>
+<p>I’d recommend:</p>
+<ul>
+<li>App model</li>
+<li>-&gt; reactive component graph</li>
+<li>-&gt; projected terminal scene</li>
+<li>-&gt; layouted plane graph</li>
+<li>-&gt; Notcurses commands</li>
+</ul>
+<p>So instead of React’s VDOM diff, Knopper does:</p>
+<p>│ FRP state -&gt; scene projection -&gt; structural diff/patch -&gt; terminal render commit</p>
+<p>This is a better fit for TUI than “re-render everything”.</p>
+<h3 id="4-rendering-layer"><a class="header" href="#4-rendering-layer">4. Rendering layer</a></h3>
+<p>This is Notcurses-specific.</p>
+<p>Responsibilities:</p>
+<ul>
+<li>plane allocation/reuse</li>
+<li>cell styling</li>
+<li>unicode/grapheme handling</li>
+<li>z-order/layers</li>
+<li>image/block/sextant/braille rendering where relevant</li>
+<li>minimal diffing between previous and next scene</li>
+<li>final atomic render commit</li>
+</ul>
+<p>This layer should be isolated behind a renderer trait.</p>
+<h3 id="5-runtimeevent-layer"><a class="header" href="#5-runtimeevent-layer">5. Runtime/event layer</a></h3>
+<p>This handles:</p>
+<ul>
+<li>keyboard/mouse/paste/resize input</li>
+<li>timers</li>
+<li>subscriptions</li>
+<li>async task completion</li>
+<li>external sync events from cliffy-protocols</li>
+</ul>
+<p>It should feed an event stream into the reactive graph.</p>
+<p>────────────────────────────────────────────────────────────────────────────────</p>
+<h3 id="the-most-important-design-choice"><a class="header" href="#the-most-important-design-choice">The most important design choice</a></h3>
+<h4 id="do-not-make-the-component-primitive-render-function---make-it-a-reactive-machine"><a class="header" href="#do-not-make-the-component-primitive-render-function---make-it-a-reactive-machine">Do not make the component primitive “render function” - Make it a reactive machine.</a></h4>
+<p>Something like:</p>
+<ul>
+<li>input events in</li>
+<li>local/global state evolves</li>
+<li>scene projection out</li>
+</ul>
+<p>Conceptually:</p>
+<pre><code class="language-text">  Component = Context × EventStream&lt;Input&gt; -&gt; Behavior&lt;Scene&gt;
+</code></pre>
+<p>or</p>
+<pre><code class="language-text">  Component = Machine&lt;Model, Msg, Scene&gt;
+</code></pre>
+<p>Where:</p>
+<ul>
+<li>Model is local state</li>
+<li>Msg is an algebraic event/intention type</li>
+<li>Scene is a terminal scene tree</li>
+</ul>
+<p>That gives you something closer to:</p>
+<ul>
+<li>FRP</li>
+<li>transducers</li>
+<li>algebraic state machines</li>
+</ul>
+<p>than React’s:</p>
+<ul>
+<li>props</li>
+<li>hooks</li>
+<li>reconciliation</li>
+</ul>
+<p>────────────────────────────────────────────────────────────────────────────────</p>
+<h3 id="a-possible-knopper-component-model"><a class="header" href="#a-possible-knopper-component-model">A possible Knopper component model</a></h3>
+<p>I think a good core abstraction is:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>  Widget&lt;Ctx, Msg&gt;                                                                                                                 
+<span class="boring">}</span></code></pre>
+<p>A widget is a pure/referentially transparent projector over reactive inputs.</p>
+<p>It can:</p>
+<ul>
+<li>read context</li>
+<li>emit messages</li>
+<li>describe scene</li>
+<li>compose with other widgets</li>
+</ul>
+<p>Then separately, a runtime-managed wrapper can add:</p>
+<ul>
+<li>focus</li>
+<li>subscriptions</li>
+<li>async commands</li>
+<li>lifecycle</li>
+</ul>
+<p>You may also want a more explicit machine form:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>  Component&lt;Model, Msg&gt;
+<span class="boring">}</span></code></pre>
+<p>with:</p>
+<ul>
+<li>init() -&gt; Model</li>
+<li>update(msg, model) -&gt; Model</li>
+<li>view(model) -&gt; <code>Scene&lt;Msg&gt;</code></li>
+<li>subscriptions(model) -&gt; <code>Stream&lt;Msg&gt;</code></li>
+</ul>
+<p>That looks Elm-ish, but the internal execution can still be Cliffy/Orlando-based rather than TEA-style message loops.</p>
+<p>I actually think the sweet spot is a hybrid:</p>
+<ul>
+<li>FRP for state propagation</li>
+<li>message algebra for intent boundaries</li>
+<li>pure scene projection for rendering</li>
+</ul>
+<p>So:</p>
+<ul>
+<li>use Behavior / Event internally</li>
+<li>expose clean typed component composition externally</li>
+</ul>
+<p>────────────────────────────────────────────────────────────────────────────────</p>
+<h3 id="where-each-ia-library-fits"><a class="header" href="#where-each-ia-library-fits">Where each IA library fits</a></h3>
+<h3 id="cliffy"><a class="header" href="#cliffy">Cliffy</a></h3>
+<p>Best use:</p>
+<ul>
+<li>reactive state</li>
+<li>time-varying values</li>
+<li>derived behaviors</li>
+<li>event streams</li>
+<li>geometric state for layout/focus/spatial composition</li>
+<li>CRDT/sync for collaborative TUIs</li>
+</ul>
+<h3 id="specific-cliffy-opportunities"><a class="header" href="#specific-cliffy-opportunities">Specific Cliffy opportunities</a></h3>
+<h4 id="cliffy-core"><a class="header" href="#cliffy-core">cliffy-core</a></h4>
+<p>Use for:</p>
+<ul>
+<li><code>Behavior&lt;T&gt;</code></li>
+<li><code>Event&lt;T&gt;</code></li>
+<li>combinators</li>
+<li>maybe geometric state for:
+<ul>
+<li>cursor/focus trajectories</li>
+<li>panel geometry</li>
+<li>animated transitions</li>
+<li>layout interpolation</li>
+</ul>
+</li>
+</ul>
+<h4 id="cliffy-protocols"><a class="header" href="#cliffy-protocols">cliffy-protocols</a></h4>
+<p>Use optionally for:</p>
+<ul>
+<li>collaborative TUI state</li>
+<li>multi-user dashboards</li>
+<li>shared terminal workspaces</li>
+<li>synchronized operator consoles</li>
+<li>distributed command/control surfaces</li>
+</ul>
+<p>This could become a killer differentiator:</p>
+<p>│ Knopper apps can be collaborative by construction.</p>
+<p>Not just “networked terminal apps”, but algebraically synchronized scene/application state.</p>
+<p>────────────────────────────────────────────────────────────────────────────────</p>
+<h3 id="orlando"><a class="header" href="#orlando">Orlando</a></h3>
+<p>This seems ideal for the projection pipeline.</p>
+<p>Use Orlando’s transducer ideas for:</p>
+<ul>
+<li>input normalization pipelines</li>
+<li>event routing</li>
+<li>scene transformation</li>
+<li>layout passes</li>
+<li>patch generation</li>
+<li>render command fusion</li>
+</ul>
+<p>Example conceptual pipeline:</p>
+<pre><code class="language-text">  RawInput
+    -&gt; normalize
+    -&gt; route_to_focus
+    -&gt; lift_to_msg
+    -&gt; update_model
+    -&gt; project_scene
+    -&gt; layout
+    -&gt; diff
+    -&gt; render_ops                                                                                                                  
+</code></pre>
+<p>That is extremely Orlando-shaped.</p>
+<p>I would especially avoid using Orlando merely as a utility crate. It feels central to Knopper’s architecture:</p>
+<ul>
+<li>components compose as transformations</li>
+<li>projection is a transducer pipeline</li>
+<li>terminal patches are reducible streams</li>
+</ul>
+<p>────────────────────────────────────────────────────────────────────────────────</p>
+<h3 id="karpal"><a class="header" href="#karpal">Karpal</a></h3>
+<p>Karpal should provide the laws and abstractions that keep Knopper from becoming a bag of framework hacks.</p>
+<p>Best uses:</p>
+<ul>
+<li>optics for nested app/component state</li>
+<li>semigroups/monoids for style merging and patch accumulation</li>
+<li>prisms for event unions / message routing</li>
+<li>profunctor optics for scene focus/transforms</li>
+<li>arrows/categories for component composition if useful</li>
+<li>recursion schemes if you want principled tree folds over scene graphs</li>
+</ul>
+<h4 id="high-value-karpal-applications"><a class="header" href="#high-value-karpal-applications">High-value Karpal applications</a></h4>
+<h4 id="1-style-algebra"><a class="header" href="#1-style-algebra">1. Style algebra</a></h4>
+<p>Styles should be lawful compositional values.</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>  Style + Style -&gt; Style                                                                                                         
+<span class="boring">}</span></code></pre>
+<p>Use semigroup/monoid semantics for:</p>
+<ul>
+<li>fg/bg color composition</li>
+<li>attributes</li>
+<li>border themes</li>
+<li>inheritance/defaulting</li>
+</ul>
+<h4 id="2-optics"><a class="header" href="#2-optics">2. Optics</a></h4>
+<p>Very useful for nested state updates:</p>
+<ul>
+<li>app model -&gt; pane model</li>
+<li>pane model -&gt; widget model</li>
+<li>widget model -&gt; focused field</li>
+</ul>
+<p>This lets parent components host child state without ugly mutation plumbing.</p>
+<h4 id="3-sum-type-routing"><a class="header" href="#3-sum-type-routing">3. Sum-type routing</a></h4>
+<p>Prisms for:</p>
+<ul>
+<li>app-level message enums</li>
+<li>variant-focused handlers</li>
+<li>event routing into subcomponents</li>
+</ul>
+<p>────────────────────────────────────────────────────────────────────────────────</p>
+<h3 id="notcurses-specific-architectural-advice"><a class="header" href="#notcurses-specific-architectural-advice">Notcurses-specific architectural advice</a></h3>
+<p>Notcurses is powerful, but it changes the design constraints.</p>
+<h4 id="important-principle"><a class="header" href="#important-principle">Important principle:</a></h4>
+<p>Render prep may be parallel; Notcurses commit should likely remain single-threaded.</p>
+<p>So:</p>
+<ul>
+<li>use rayon for:
+<ul>
+<li>layout calculations</li>
+<li>diff preparation</li>
+<li>text measurement</li>
+<li>off-thread patch computation</li>
+</ul>
+</li>
+<li>but keep final plane mutation / render commit serialized unless Notcurses guarantees more</li>
+</ul>
+<h4 id="knopper-should-model-notcurses-as"><a class="header" href="#knopper-should-model-notcurses-as">Knopper should model Notcurses as:</a></h4>
+<ul>
+<li>a terminal scene backend</li>
+<li>not as the primary app model</li>
+</ul>
+<p>That means don’t let components manipulate planes directly.</p>
+<p>Instead:</p>
+<ul>
+<li>components produce scene nodes</li>
+<li>renderer lowers nodes into planes/cells</li>
+</ul>
+<p>This will preserve portability and testability.</p>
+<p>────────────────────────────────────────────────────────────────────────────────</p>
+<h3 id="suggested-scene-model"><a class="header" href="#suggested-scene-model">Suggested scene model</a></h3>
+<p>I’d recommend three intermediate representations.</p>
+<ol>
+<li>Declarative scene tree</li>
+</ol>
+<p>Human-friendly component output.</p>
+<p>Example variants:</p>
+<ul>
+<li>Text</li>
+<li>Row</li>
+<li>Col</li>
+<li>Grid</li>
+<li>Box</li>
+<li>Scroll</li>
+<li>Overlay</li>
+<li>Spacer</li>
+<li>Canvas</li>
+<li>Input</li>
+<li>List</li>
+<li>Conditional</li>
+<li>Dynamic</li>
+</ul>
+<ol start="2">
+<li>Layouted scene</li>
+</ol>
+<p>After measurement/layout:</p>
+<ul>
+<li>absolute coordinates</li>
+<li>sizes</li>
+<li>clipping</li>
+<li>z-index</li>
+<li>style resolution</li>
+</ul>
+<ol start="3">
+<li>Render ops</li>
+</ol>
+<p>Backend-specific:</p>
+<ul>
+<li>write grapheme</li>
+<li>set style</li>
+<li>move cursor</li>
+<li>create plane</li>
+<li>resize plane</li>
+<li>blit image</li>
+<li>draw border</li>
+</ul>
+<p>This separation will make Knopper much easier to test.</p>
+<p>────────────────────────────────────────────────────────────────────────────────</p>
+<h3 id="i-strongly-agree-with-avoiding-html-like-syntax"><a class="header" href="#i-strongly-agree-with-avoiding-html-like-syntax">I strongly agree with avoiding HTML-like syntax.</a></h3>
+<p>Good direction</p>
+<p>A DSL that feels like:</p>
+<ul>
+<li>terminal composition</li>
+<li>geometry</li>
+<li>algebraic layout</li>
+<li>reactive values</li>
+</ul>
+<p>Example:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>    let app = dock(
+        top(status_bar(status)),
+        left(width(24, file_tree(files))),
+        center(editor(buffer)),
+        bottom(height(1, command_line(input))),
+    );                                                                                                                             
+<span class="boring">}</span></code></pre>
+<p>Or:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>    let app = col((
+        text("Knopper"),
+        when(show_sidebar, row((
+            width(24, sidebar()),
+            fill(main_panel()),
+        ))),
+        footer(status_line()),
+    ));
+<span class="boring">}</span></code></pre>
+<p>This is much closer to TUI reality than pseudo-DOM.</p>
+<p>Start with pure Rust builders</p>
+<p>I would not begin with proc macros.</p>
+<p>Start with:</p>
+<ul>
+<li>enums</li>
+<li>builders</li>
+<li>combinators</li>
+<li>functions</li>
+</ul>
+<p>Then later, if desired, add syntax sugar.</p>
+<p>That will keep the semantics honest.</p>
+<p>────────────────────────────────────────────────────────────────────────────────</p>
+<p>A component architecture I think fits your vision</p>
+<p>Here’s the shape I’d currently recommend.</p>
+<p>Components as algebraic machines</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>    trait Component {
+        type Model;
+        type Msg;
+        type Output;
+        
+        fn init(&amp;self) -&gt; Self::Model;
+        fn update(&amp;self, model: &amp;mut Self::Model, msg: Self::Msg);
+        fn project(&amp;self, model: &amp;Self::Model) -&gt; Self::Output;
+    }
+<span class="boring">}</span></code></pre>
+<p>But internally, project can lift into reactive graph semantics.</p>
+<p>A more FRP-native form would be:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>    trait ReactiveComponent {
+        type Input;
+        type Msg;
+        type Scene;
+        
+        fn bind(&amp;self, input: Event&lt;Self::Input&gt;) -&gt; Behavior&lt;Self::Scene&gt;;
+    }
+<span class="boring">}</span></code></pre>
+<p>I think the best practical choice is:</p>
+<ul>
+<li>public API closer to <code>Component&lt;Model, Msg&gt;</code></li>
+<li>implementation/runtime internally powered by Cliffy behaviors/events</li>
+</ul>
+<p>That gives users clarity without exposing every FRP detail.</p>
+<p>────────────────────────────────────────────────────────────────────────────────</p>
+<h3 id="a-novel-knopper-specific-idea"><a class="header" href="#a-novel-knopper-specific-idea">A novel Knopper-specific idea</a></h3>
+<p>“Projection Machines” instead of components</p>
+<p>If you want to differentiate from React/Ink more strongly, call the primitive something other than component.</p>
+<p>Maybe:</p>
+<ul>
+<li>Projection</li>
+<li>Machine</li>
+<li>Pane</li>
+<li>Node</li>
+<li>Surface</li>
+<li>Knop if you want project branding</li>
+</ul>
+<p>For example:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>    trait Projection {
+        type State;
+        type Event;
+        fn scene(&amp;self, state: &amp;Self::State) -&gt; Scene&lt;Self::Event&gt;;
+    }                                                                                                                              
+<span class="boring">}</span></code></pre>
+<p>That nomenclature alone helps avoid React cargo-culting.</p>
+<p>────────────────────────────────────────────────────────────────────────────────</p>
+<h3 id="collaborationsync-story"><a class="header" href="#collaborationsync-story">Collaboration/sync story</a></h3>
+<p>This is where Knopper could be genuinely novel.</p>
+<p>Most TUI frameworks stop at local interactivity.</p>
+<p>Knopper could support:</p>
+<ul>
+<li>multi-user shared state</li>
+<li>replicated operator dashboards</li>
+<li>synchronized terminal workflows</li>
+<li>remote cursors/focus</li>
+<li>collaborative editors/forms/panels</li>
+</ul>
+<p>Using cliffy-protocols, you could treat:</p>
+<ul>
+<li>local UI state</li>
+<li>remote updates</li>
+<li>derived scene state</li>
+</ul>
+<p>as one convergent reactive system.</p>
+<p>That is much more interesting than “Ink in Rust”.</p>
+<p>────────────────────────────────────────────────────────────────────────────────</p>
+<h3 id="risks--pitfalls"><a class="header" href="#risks--pitfalls">Risks / pitfalls</a></h3>
+<h4 id="1-over-importing-web-ui-assumptions"><a class="header" href="#1-over-importing-web-ui-assumptions">1. Over-importing web UI assumptions</a></h4>
+<p>Avoid:</p>
+<ul>
+<li>React hooks semantics</li>
+<li>VDOM-first thinking</li>
+<li>DOM-like node names</li>
+<li>browser-style event bubbling unless carefully adapted</li>
+</ul>
+<p>Terminals are different:</p>
+<ul>
+<li>focus is more explicit</li>
+<li>layout is tighter</li>
+<li>rendering cost model is different</li>
+<li>text and glyph width are hard constraints</li>
+</ul>
+<h4 id="2-overusing-geometric-abstraction"><a class="header" href="#2-overusing-geometric-abstraction">2. Overusing geometric abstraction</a></h4>
+<p>Cliffy geometry should serve:</p>
+<ul>
+<li>layout</li>
+<li>motion</li>
+<li>interpolation</li>
+<li>merge/sync</li>
+</ul>
+<p>It should not leak everywhere if it makes common TUI work awkward.</p>
+<h4 id="3-letting-notcurses-leak-into-public-apis"><a class="header" href="#3-letting-notcurses-leak-into-public-apis">3. Letting Notcurses leak into public APIs</a></h4>
+<p>Public API should talk in:</p>
+<ul>
+<li>scene</li>
+<li>style</li>
+<li>layout</li>
+<li>surface</li>
+<li>event</li>
+</ul>
+<p>not in raw Notcurses planes/cells.</p>
+<h4 id="4-premature-macro-dsl-work"><a class="header" href="#4-premature-macro-dsl-work">4. Premature macro DSL work</a></h4>
+<p>The algebra should stabilize before syntax sugar.</p>
+<p>────────────────────────────────────────────────────────────────────────────────</p>
+<h3 id="what-i-would-build-first"><a class="header" href="#what-i-would-build-first">What I would build first</a></h3>
+<h4 id="milestone-1-a-tiny-lawful-core"><a class="header" href="#milestone-1-a-tiny-lawful-core">Milestone 1: a tiny lawful core</a></h4>
+<p>Before fancy widgets, prove the architecture with:</p>
+<h5 id="core-cratesmodules"><a class="header" href="#core-cratesmodules">Core crates/modules</a></h5>
+<ul>
+<li>knopper-core
+<ul>
+<li>scene algebra</li>
+<li>style algebra</li>
+<li>layout primitives</li>
+<li>component/projection traits</li>
+</ul>
+</li>
+<li>knopper-runtime
+<ul>
+<li>event loop</li>
+<li>subscriptions</li>
+<li>FRP wiring</li>
+</ul>
+</li>
+<li>knopper-notcurses
+<ul>
+<li>renderer backend</li>
+</ul>
+</li>
+<li>knopper-widgets
+<ul>
+<li>text, row, col, box, input, list</li>
+</ul>
+</li>
+</ul>
+<h5 id="demo-capabilities"><a class="header" href="#demo-capabilities">Demo capabilities</a></h5>
+<ul>
+<li>reactive counter</li>
+<li>focusable list</li>
+<li>text input</li>
+<li>split panes</li>
+<li>resize handling</li>
+<li>diffed redraws</li>
+</ul>
+<p>That would validate the model fast.</p>
+<p>────────────────────────────────────────────────────────────────────────────────</p>
+<h4 id="my-recommendation-in-one-sentence"><a class="header" href="#my-recommendation-in-one-sentence">My recommendation in one sentence</a></h4>
+<p>Build Knopper as:</p>
+<pre><code class="language-text">a typed reactive scene algebra for terminal interfaces, projected through Orlando-style transformation pipelines into a Notcurses renderer, with Cliffy-powered state/sync and Karpal-backed lawful composition.
+</code></pre>
+<p>That feels coherent and genuinely IA-native.</p>
+<p>────────────────────────────────────────────────────────────────────────────────</p>
+<p>Concrete next design questions</p>
+<p>I think the next useful discussion is to decide these 4 things:</p>
+<ol>
+<li>What is the primary public abstraction?</li>
+</ol>
+<ul>
+<li>Component</li>
+<li>Projection</li>
+<li>Widget</li>
+<li>Machine</li>
+</ul>
+<ol start="2">
+<li>What does a component return?</li>
+</ol>
+<ul>
+<li><code>Scene&lt;Msg&gt;</code></li>
+<li><code>Behavior&lt;Scene&lt;Msg&gt;&gt;</code></li>
+<li>something hybrid</li>
+</ul>
+<ol start="3">
+<li>Is local state message-driven, FRP-driven, or hybrid?</li>
+</ol>
+<ul>
+<li>TEA-like</li>
+<li>pure FRP</li>
+<li>hybrid</li>
+</ul>
+<ol start="4">
+<li>What is the minimal scene algebra?</li>
+</ol>
+<ul>
+<li>text/layout only</li>
+<li>or include input/focus/scroll in v0</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="release-0.1.0.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="release-0.1.0.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
+
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>
