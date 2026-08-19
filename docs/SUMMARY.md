@@ -39,6 +39,7 @@
 # Release
 
 - [0.1.0 release preparation](./release-0.1.0.md)
+- [Embedding-contract validation findings](./embedding-validation-2026-08.md)
 
 ---
 
