@@ -1,13 +1,15 @@
 [book]
 title = "Knopper"
-description = "A functional-reactive terminal UI framework and collaboration substrate"
+description = "A functional-reactive terminal UI framework and multi-user collaboration substrate"
 authors = ["Industrial Algebra"]
 language = "en"
-src = "docs"
+src = "book/src"
+
+[build]
+build-dir = "book/book"
 
 [output.html]
+additional-css = ["book/theme/custom.css"]
+default-theme = "navy"
+preferred-dark-theme = "navy"
 git-repository-url = "https://github.com/Industrial-Algebra/Knopper"
-edit-url-template = "https://github.com/Industrial-Algebra/Knopper/edit/develop/docs/{path}"
-
-[output.html.search]
-limit-results = 20
