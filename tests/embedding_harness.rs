@@ -456,8 +456,9 @@ fn s5_append_wall_clock_measurement() {
     let mut backend = MockBackend::default();
     let mut projection = TranscriptProjection::default();
 
-    let mut samples = Vec::with_capacity(1_000);
-    for i in 0..1_000 {
+    let total = 10_000;
+    let mut samples = Vec::with_capacity(total);
+    for i in 0..total {
         projection.lines.push(format!("chunk {i}"));
         let start = Instant::now();
         runtime.set_shared(projection.clone());
@@ -476,7 +477,15 @@ fn s5_append_wall_clock_measurement() {
         "  appends 401..=500 avg: {:8.3}",
         report(&samples[400..500])
     );
-    println!("  appends 900..=1000 avg: {:8.3}", report(&samples[900..]));
+    println!(
+        "  appends 900..=1000 avg: {:8.3}",
+        report(&samples[900..1000])
+    );
+    println!(
+        "  appends 4k..=5k avg: {:8.3}",
+        report(&samples[4_000..5_000])
+    );
+    println!("  appends 9k..=10k avg: {:8.3}", report(&samples[9_000..]));
     println!(
         "  max single append: {:8.3} ms",
         samples.iter().max().unwrap().as_secs_f64() * 1_000.0
