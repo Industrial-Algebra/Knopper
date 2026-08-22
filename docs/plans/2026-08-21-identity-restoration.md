@@ -32,6 +32,26 @@ GA honesty is the identity.
 - `docs/release-0.1.0.md` checklist is stale (lists the already-absorbed
   `feature/focus-trap-semantics` merge as an open step).
 
+## Positioning & constraints (maintainer directives, 2026-08-22)
+
+Verbatim context for every unit below — these are not preferences to weigh
+against convenience:
+
+1. **The GA substrate is the identity.** It was foundational and central,
+   like cliffy. Perf barriers arising from carrying geometry are expected;
+   contend with them — never route around them by stubbing.
+2. **The empirical pattern governs optimization.** Hypotheses get wired,
+   measured against the harness, and kept or reverted on numbers (rayon:
+   +14% steady-state, reverted — tested and rejected beats blindly insisted
+   or blindly dropped). The instrumentation stays so decisions stay cheap.
+3. **Borsalino is the fallback for heavy geometric compute.** When GA costs
+   grow past CPU budgets in hot paths (Schubert intersection arbitration,
+   merge-math), offload to Borsalino's verified GPU GA kernels and consume
+   the results as projections — rather than weakening the substrate.
+4. **Knopper is not a bare-bones ANSI TUI library.** It fully leverages
+   Notcurses on machines with substantial compute. Correctness and richness
+   first; footprint is not a design constraint.
+
 ## Work units (one session each, per agent discipline)
 
 ### Unit 1 — Streaming-append performance: O(n) diff + rayon (start here)
@@ -73,6 +93,25 @@ the loop if cheap); rayon used or removed-with-numbers; clippy/fmt/test green.
    not force): cliffy-core change-gated notification (notify subscribers only
    when the multivector changes — injective encodings make it sound; affects
    Borsalino et al., so it goes through cliffy's own gitflow).
+
+Design entry notes (from the positioning directives + GA3's shape):
+
+- **GA3 is 8-dimensional** (scalar · e1 e2 e3 · e12 e13 e23 · e123). The
+  contract must be honest about what fits there and what doesn't:
+  scalar → identity/count; vector blades → primary state axes; bivector
+  blades → pairwise/relational composition (tone mixing); pseudoscalar →
+  aggregate/parity. Injectivity is achievable within this budget for the
+  state types; anything exceeding it gets a documented home elsewhere.
+- **Grassmannian structure exceeds GA3 by design.** Schubert arbitration
+  needs grade-rich subspaces; the contract must define the *bridge* — GA3
+  stays cliffy's reactive-cell fingerprint layer, but fingerprints become
+  **derived from semantic encodings** (structured projections, compositional)
+  rather than hash garbage. Higher-grade math lives in amari/Borsalino
+  territory per directive #3; the contract names the seam.
+- **Perf barriers from the substrate are accepted costs** (directive #1) —
+  measure them in the harness like everything else, optimize within the
+  substrate, offload to Borsalino when the math outgrows CPU. Do not delete
+  geometry to make a number.
 
 DoD: zero `GA3::zero()` impls remain; encoding contract merged; a test proves
 the GA-derived consumer changes output when (and only when) state changes.
