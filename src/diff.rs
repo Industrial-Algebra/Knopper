@@ -1,6 +1,8 @@
 // Copyright (C) 2026 Industrial Algebra
 // SPDX-License-Identifier: Apache-2.0
 
+use std::collections::{HashMap, HashSet};
+
 use crate::{NodeId, RenderOp};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -12,22 +14,32 @@ pub enum PatchOp {
 
 #[must_use]
 pub fn diff_render_ops(previous: &[RenderOp], next: &[RenderOp]) -> Vec<PatchOp> {
+    // O(n): index the previous frame by node id (first occurrence wins,
+    // matching the linear-scan `find` semantics this replaces), then make
+    // single passes for inserts/updates (in next order) and removals (in
+    // previous order). Patch order is identical to the quadratic original.
+    let mut previous_by_id: HashMap<NodeId, &RenderOp> = HashMap::with_capacity(previous.len());
+    for op in previous {
+        previous_by_id.entry(op_id(op)).or_insert(op);
+    }
+
+    let mut present: HashSet<NodeId> = HashSet::with_capacity(next.len());
     let mut patches = Vec::new();
 
     for op in next {
-        match previous
-            .iter()
-            .find(|existing| op_id(existing) == op_id(op))
-        {
+        let id = op_id(op);
+        present.insert(id);
+        match previous_by_id.get(&id) {
             None => patches.push(PatchOp::Insert(op.clone())),
-            Some(existing) if existing != op => patches.push(PatchOp::Update(op.clone())),
+            Some(&existing) if existing != op => patches.push(PatchOp::Update(op.clone())),
             Some(_) => {}
         }
     }
 
     for op in previous {
-        if !next.iter().any(|candidate| op_id(candidate) == op_id(op)) {
-            patches.push(PatchOp::Remove(op_id(op)));
+        let id = op_id(op);
+        if !present.contains(&id) {
+            patches.push(PatchOp::Remove(id));
         }
     }
 
