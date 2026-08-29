@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b72bc1d4.js";
+            window.path_to_searchindex_js = "searchindex-feee7898.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-c4721d90.js"></script>
+        <script src="toc-2aafcc7f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -8142,6 +8142,144 @@ but are not stable API.</li>
 </ul>
 <hr>
 <p><em>Release preparation document for Knopper 0.1.0.</em></p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="embedding-contract-validation--findings-2026-08-18"><a class="header" href="#embedding-contract-validation--findings-2026-08-18">Embedding-Contract Validation — Findings (2026-08-18)</a></h1>
+<p><strong>Scope:</strong> Tier 0 spike (<code>docs/handoff/2026-08-17-tier0-embedding-validation.md</code>).
+<strong>Contract:</strong> <code>IA-documents/CONTRACTS/wallace-knopper-embedding.md</code> v0.3, §1–§5.
+<strong>Code under test:</strong> Knopper develop @ <code>45ed84c</code> (post PR #5 + #6).
+<strong>Harness:</strong> <code>tests/embedding_harness.rs</code> — 6 tests + 1 ignored perf measurement,
+all against the public <code>Runtime</code> surface with host-defined types only.</p>
+<h2 id="verdicts-per-assumption"><a class="header" href="#verdicts-per-assumption">Verdicts per assumption</a></h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Contract section</th><th>Assumption</th><th>Verdict</th></tr>
+</thead>
+<tbody>
+<tr><td>§1</td><td><code>Runtime</code> surface is embedder-driven (all listed methods present)</td><td>✅ Verified</td></tr>
+<tr><td>§1</td><td>Non-goal: no mandatory <code>run()</code> loop in the library</td><td>✅ Holds (only the demo binary loops)</td></tr>
+<tr><td>§2</td><td>Host-driven turn cycle: dispatch / send / set_shared (+set_context) / diff / commit</td><td>✅ Verified end-to-end</td></tr>
+<tr><td>§3.1</td><td><code>set_shared</code> reprojects scenes that read <code>Shared</code></td><td>✅ Verified (Behavior reactivity; lib test <code>runtime_shared_state_updates_reproject_scene</code> survives M2)</td></tr>
+<tr><td>§3.2</td><td><code>Model</code> = participant-local; agrees with roadmap 06</td><td>✅ <strong>Signed off — the two contracts agree</strong></td></tr>
+<tr><td>§3.3</td><td><code>set_shared</code> whole-replace composes with machine <code>update</code> on <code>Model</code></td><td>✅ Verified</td></tr>
+<tr><td>§4</td><td>Host defines its own <code>Msg</code> without Knopper internals</td><td>✅ Verified</td></tr>
+<tr><td>§4</td><td>Effects “interpreted by the adapter”</td><td>⚠️ <strong>Correction needed</strong> — see below</td></tr>
+<tr><td>§5</td><td><code>diff()</code> cheap for append-mostly scenes</td><td>❌ <strong>Fails today</strong> — quadratic; 0.1.x work item</td></tr>
+</tbody>
+</table>
+</div>
+<h2 id="1--embedding-model"><a class="header" href="#1--embedding-model">§1 — Embedding model</a></h2>
+<p>Every method the contract lists exists with the expected shape:
+<code>new(machine, ctx, shared_initial)</code>, <code>set_context</code>, <code>set_shared</code>,
+<code>dispatch(RuntimeEvent)</code>, <code>send(Msg)</code>, <code>scene</code>, <code>model</code>, <code>shared</code>, <code>focus</code>,
+<code>layout(bounds)</code>, <code>render_ops(bounds)</code>, <code>cursor(bounds)</code>, <code>diff(bounds)</code>,
+<code>render_to_backend{,_with_cursor,_auto_cursor}</code>, <code>invalidate_render_state</code>.
+Plus <code>render(renderer, bounds)</code> for the generic <code>Renderer</code> path.</p>
+<p>The library has <strong>no <code>run()</code></strong>. The only event loops live in the demo binary
+(<code>src/main.rs</code>), which drives <code>Runtime</code> exactly as a host would. The PR #5
+runtime event policy (<code>docs/guides/08-runtime-event-policy.md</code>) is a dispatch
+<em>precedence</em> policy — it introduced no hosted/blocking loop. Non-goal intact.</p>
+<h2 id="2--drive-loop"><a class="header" href="#2--drive-loop">§2 — Drive loop</a></h2>
+<p><code>s2_host_driven_turn_cycle</code> runs the contract’s loop verbatim over five turns:
+domain event → adapter → <code>send</code> / <code>set_shared</code>; key → <code>dispatch</code>; commit via
+<code>render_to_backend</code>; per-turn <code>cursor</code> read. No event-loop ownership on
+Knopper’s side. One semantic worth host attention: <strong><code>diff(bounds)</code> is
+read-only</strong> — it diffs against <code>last_render_ops</code> but does not advance the
+baseline. The committing paths (<code>render</code>, <code>render_to_backend*</code>) advance it.
+A host that calls <code>diff()</code> repeatedly without committing sees cumulative
+patches, not incremental ones.</p>
+<h2 id="3--projection-injection-the-spikes-center"><a class="header" href="#3--projection-injection-the-spikes-center">§3 — Projection-injection (the spike’s center)</a></h2>
+<ol>
+<li><strong>Reprojection on <code>set_shared</code>: confirmed.</strong> <code>Runtime::set_shared</code> sets the
+shared <code>Behavior</code>; the scene behavior re-derives on the next sample. The
+pre-existing lib test survived the M2 collaboration rework and still passes.</li>
+<li><strong><code>Model</code> participant-local: SIGNED OFF.</strong> Roadmap 06
+(<code>docs/roadmap/06-collaboration-ready-contract.md</code>) states “Focus is
+participant-local. Each runtime’s <code>FocusState</code> is its own” and lists
+selection/commit as <code>Model</code>-resident — identical to contract §3/§7.
+<code>s3_model_state_is_participant_local</code> proves two runtimes sharing a pushed
+projection diverge in <code>Model</code>/focus without cross-talk. <strong>No disagreement
+between the contracts; no reconciliation needed before 0.1.0.</strong></li>
+<li><strong>Whole-replace composes with <code>update</code>: confirmed.</strong> <code>send()</code> mutates
+<code>Model</code>; <code>set_shared</code> replaces <code>Shared</code>; the next projection reflects both
+(<code>s3_set_shared_reprojects_and_composes_with_update</code>). “Works,” not
+“optimal” — see §5.</li>
+</ol>
+<p><strong>New API fact the contract should record:</strong> hosts with custom <code>Model</code> /
+<code>Shared</code> types must implement cliffy-core’s <code>IntoGeometric</code> / <code>FromGeometric</code>
+(the <code>Behavior</code> reactivity fingerprint). These are now <strong>re-exported from
+<code>knopper</code></strong> (<code>IntoGeometric</code>, <code>FromGeometric</code>, <code>GA3</code>) so hosts need no direct
+cliffy-core dependency. Encodings may be hash-based (the native value is
+cached; the geometric form is only a fingerprint), exactly as cliffy-core’s
+own <code>String</code> impl does.</p>
+<h2 id="4--message--effect-contract"><a class="header" href="#4--message--effect-contract">§4 — Message + effect contract</a></h2>
+<p>Host-defined <code>Msg</code> on a <code>PureMachine</code>: verified, no Knopper internals needed.</p>
+<p><strong>Correction needed (contract §4, third bullet).</strong> The contract says Wallace’s
+adapter “interprets effects requiring orchestration.” The actual <code>Effect&lt;Msg&gt;</code>
+enum is <strong>closed</strong>: <code>None</code>, <code>Emit(Msg)</code>, <code>Batch(Vec&lt;Effect&gt;)</code>,
+<code>RequestFocus(NodeId)</code>. The runtime drains effects <strong>synchronously and
+completely</strong> inside <code>send</code>/<code>dispatch</code> (<code>Emit</code> recursively self-dispatches;
+<code>Batch</code> applies in order; <code>RequestFocus</code> routes through the focus dispatch
+path). No effect reaches the host; there is nothing for an adapter to
+interpret today. The working pattern for orchestration (“start a run”,
+“invoke a tool”): the host triggers async work <strong>at <code>send</code>-time in its own
+adapter</strong> (it sees the domain event before Knopper does) or observes <code>Model</code>
+state between turns. §O3 (async-effect bridge) stays open and should be
+reworded to note the closed-enum status quo.</p>
+<h2 id="5--streaming-append-measurement"><a class="header" href="#5--streaming-append-measurement">§5 — Streaming-append measurement</a></h2>
+<p>Method: transcript machine (<code>Shared = Vec&lt;String&gt;</code> projection, stable per-line
+node ids), 1,000 appends, per-turn <code>set_shared</code> + <code>render_to_backend</code> against
+<code>MockBackend</code>, bounds 80×24.</p>
+<p><strong>Structural assertion (CI-stable):</strong> per-append backend command count stays
+bounded (≤ 4: one row insert + header update; <code>s5_append_patches_stay_bounded</code>).
+The <em>committed patch surface</em> per append is O(1) — correct behavior.</p>
+<p><strong>Wall-clock (the number the contract asked for):</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Appends (avg ms/append)</th><th>Debug</th><th>Release</th></tr>
+</thead>
+<tbody>
+<tr><td>1–100</td><td>0.090</td><td>0.023</td></tr>
+<tr><td>401–500</td><td>1.630</td><td>0.241</td></tr>
+<tr><td>900–1000</td><td>6.062</td><td>0.778</td></tr>
+<tr><td>Max single append</td><td>6.664</td><td>0.861</td></tr>
+</tbody>
+</table>
+</div>
+<p><strong>Verdict: §5 fails today.</strong> Cost grows ~quadratically (~34–67× for 10× data).
+Root causes, in dominance order:</p>
+<ol>
+<li><code>diff_render_ops</code> is <strong>O(n²)</strong> — linear <code>find</code> over the previous op list
+per next op (and again for removals). Dominates at scale.</li>
+<li><code>render_ops(bounds)</code> re-runs full layout + render lowering per turn — O(n)
+per chunk (the contract’s anticipated “re-walk”).</li>
+<li><code>set_shared</code> + <code>sample()</code> clone the whole <code>Shared</code> — O(n) memcpy of string
+bytes per append (Behavior caches native values; no structural sharing).</li>
+</ol>
+<p>At 1,000 lines release-mode commits stay sub-millisecond — usable for the
+first slice — but 10k-line transcripts project to ~80 ms/append. <strong>0.1.x work
+item (not a contract change, per the contract’s own anticipation):</strong> an
+append-optimized path — HashMap-keyed O(n) <code>diff_render_ops</code>, then
+viewport-bounded projection so machines render the visible window only.</p>
+<h2 id="contract-corrections-to-land-in-ia-documents-9-protocol"><a class="header" href="#contract-corrections-to-land-in-ia-documents-9-protocol">Contract corrections to land in IA-documents (§9 protocol)</a></h2>
+<ol>
+<li>§4 bullet 3 → reflect the closed <code>Effect</code> enum + synchronous drain;
+reword §O3 accordingly.</li>
+<li>§3 → note the <code>IntoGeometric</code> / <code>FromGeometric</code> requirement for custom
+<code>Model</code>/<code>Shared</code>, re-exported from <code>knopper</code>.</li>
+<li>§5 status line → “validated with findings”: quadratic confirmed, numbers
+above, append-optimized diff is a scheduled 0.1.x work item.</li>
+<li>Change log → v0.4 entry.</li>
+</ol>
+<h2 id="definition-of-done"><a class="header" href="#definition-of-done">Definition of done</a></h2>
+<ul>
+<li>✅ Harness merged (<code>tests/embedding_harness.rs</code>), CI-green.</li>
+<li>✅ Streaming-append cost is a known number, not a guess.</li>
+<li>✅ <code>Model</code>/<code>Shared</code> question signed off (contracts agree).</li>
+<li>⏳ Contract v0.4 corrections land via IA-documents PR (with this note
+referenced).</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="core-thesis-1"><a href="#core-thesis-1" class="header">Core thesis</a></h1>
 <h2 id="core-thesis"><a class="header" href="#core-thesis">Core thesis</a></h2>
