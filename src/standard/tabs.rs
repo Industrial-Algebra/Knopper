@@ -11,14 +11,32 @@ pub struct TabsState {
 }
 
 impl IntoGeometric for TabsState {
+    /// Class A (exact): `1` = selected, `e1` = committed index,
+    /// `e12` = committed marker (0/1). `Some(0)` and `None` differ by the
+    /// marker blade.
     fn into_geometric(self) -> GA3 {
-        GA3::zero()
+        let mut c = [0.0; crate::geometric::BLADES];
+        c[crate::geometric::SCALAR] = self.selected as f64;
+        if let Some(committed) = self.committed {
+            c[crate::geometric::E1] = committed as f64;
+            c[crate::geometric::E12] = 1.0;
+        }
+        crate::geometric::from_coeffs(c)
     }
 }
 
 impl FromGeometric for TabsState {
-    fn from_geometric(_mv: &GA3) -> Self {
-        Self::default()
+    /// Class A inverse of [`IntoGeometric`](IntoGeometric-for-TabsState):
+    /// the `e12` marker blade discriminates `Some(v)` from `None`.
+    fn from_geometric(mv: &GA3) -> Self {
+        Self {
+            selected: mv.get(crate::geometric::SCALAR) as usize,
+            committed: if mv.get(crate::geometric::E12) > 0.5 {
+                Some(mv.get(crate::geometric::E1) as usize)
+            } else {
+                None
+            },
+        }
     }
 }
 

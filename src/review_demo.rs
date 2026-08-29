@@ -54,8 +54,30 @@ pub struct ReviewDemoState {
 }
 
 impl IntoGeometric for ReviewDemoState {
+    /// Class B aggregate: `e1` = focus declared, `e2` = cursor present,
+    /// `e12/e13` = digest over the child encodings (tabs, query, draft,
+    /// list, follow, publish — composition via
+    /// [`Digest::of_children`](crate::geometric::Digest::of_children)),
+    /// `e23/e123` = digest of the status string. Scalar reserved.
     fn into_geometric(self) -> GA3 {
-        GA3::zero()
+        let children = [
+            self.tabs.into_geometric(),
+            self.query.into_geometric(),
+            self.draft.into_geometric(),
+            self.list.into_geometric(),
+            self.follow.into_geometric(),
+            self.publish.into_geometric(),
+        ];
+        let (c0, c1) = crate::geometric::Digest::of_children(&children);
+        let (s0, s1) = crate::geometric::Digest::of_bytes(self.status.as_bytes());
+        let mut c = [0.0; crate::geometric::BLADES];
+        c[crate::geometric::E1] = f64::from(u8::from(self.focused.is_some()));
+        c[crate::geometric::E2] = f64::from(u8::from(self.cursor.is_some()));
+        c[crate::geometric::E12] = c0;
+        c[crate::geometric::E13] = c1;
+        c[crate::geometric::E23] = s0;
+        c[crate::geometric::E123] = s1;
+        crate::geometric::from_coeffs(c)
     }
 }
 

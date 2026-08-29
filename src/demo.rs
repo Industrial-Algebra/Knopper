@@ -42,8 +42,41 @@ pub struct DemoState {
 }
 
 impl IntoGeometric for DemoState {
+    /// Class B aggregate: `1` = completed task count, `e1` = inspector
+    /// visible, `e2` = focus declared, `e3` = cursor present,
+    /// `e12/e13` = digest over the child encodings (tabs, toggle, button,
+    /// textarea, list, palette — composition via
+    /// [`Digest::of_children`](crate::geometric::Digest::of_children)),
+    /// `e23/e123` = digest of the string fields (status, last input).
     fn into_geometric(self) -> GA3 {
-        GA3::zero()
+        let children = [
+            self.tabs.into_geometric(),
+            self.toggle.into_geometric(),
+            self.button.into_geometric(),
+            self.textarea.into_geometric(),
+            self.list.into_geometric(),
+            self.palette.into_geometric(),
+        ];
+        let (c0, c1) = crate::geometric::Digest::of_children(&children);
+        let mut strings = Vec::new();
+        strings.extend_from_slice(&(self.status.len() as u64).to_le_bytes());
+        strings.extend_from_slice(self.status.as_bytes());
+        strings.push(u8::from(self.last_input.is_some()));
+        if let Some(last) = &self.last_input {
+            strings.extend_from_slice(&(last.len() as u64).to_le_bytes());
+            strings.extend_from_slice(last.as_bytes());
+        }
+        let (s0, s1) = crate::geometric::Digest::of_bytes(&strings);
+        let mut c = [0.0; crate::geometric::BLADES];
+        c[crate::geometric::SCALAR] = self.task_done.iter().filter(|d| **d).count() as f64;
+        c[crate::geometric::E1] = f64::from(u8::from(self.inspector_visible));
+        c[crate::geometric::E2] = f64::from(u8::from(self.focused.is_some()));
+        c[crate::geometric::E3] = f64::from(u8::from(self.cursor.is_some()));
+        c[crate::geometric::E12] = c0;
+        c[crate::geometric::E13] = c1;
+        c[crate::geometric::E23] = s0;
+        c[crate::geometric::E123] = s1;
+        crate::geometric::from_coeffs(c)
     }
 }
 

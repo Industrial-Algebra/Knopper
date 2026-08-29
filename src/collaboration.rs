@@ -16,6 +16,7 @@
 // `Runtime::set_shared`. See docs/roadmap/06-collaboration-ready-contract.md.
 
 use crate::NodeId;
+use cliffy_core::{FromGeometric, GA3, IntoGeometric};
 
 /// Identity of a participant in a collaborative session.
 ///
@@ -209,6 +210,141 @@ impl ParticipantRoster {
             self.local_id = None;
         }
     }
+}
+
+// ===========================================================================
+// Geometric encodings — semantically true (contract §4)
+// ===========================================================================
+// Tones are unit coefficients on their own basis blades (Local -> e1,
+// Collaborator -> e2, Passive -> e3), so disjoint blade supports make roster
+// combination exactly multivector addition: no cancellation, no collision,
+// order-independent sums. Labels do NOT participate — they are presentation,
+// not merge semantics; a relabel does not move the geometry.
+
+impl PresenceTone {
+    /// The basis blade this tone occupies as a unit coefficient.
+    #[must_use]
+    pub const fn blade(self) -> usize {
+        match self {
+            PresenceTone::Local => crate::geometric::E1,
+            PresenceTone::Collaborator => crate::geometric::E2,
+            PresenceTone::Passive => crate::geometric::E3,
+        }
+    }
+}
+
+impl IntoGeometric for Presence {
+    /// One participant: `1` in the scalar slot, the tone blade set to 1,
+    /// `e12/e13` carrying the [`Digest`](crate::geometric::Digest) of
+    /// `(id, anchor)` — identity and scene anchoring are merge semantics;
+    /// label is excluded by design.
+    fn into_geometric(self) -> GA3 {
+        let mut bytes = Vec::with_capacity(24);
+        bytes.extend_from_slice(&(self.id.as_str().len() as u64).to_le_bytes());
+        bytes.extend_from_slice(self.id.as_str().as_bytes());
+        bytes.push(u8::from(self.anchor.is_some()));
+        if let Some(anchor) = self.anchor {
+            bytes.extend_from_slice(&anchor.get().to_le_bytes());
+        }
+        let (w0, w1) = crate::geometric::Digest::of_bytes(&bytes);
+        let mut coeffs = [0.0; crate::geometric::BLADES];
+        coeffs[crate::geometric::SCALAR] = 1.0;
+        coeffs[self.tone.blade()] = 1.0;
+        coeffs[crate::geometric::E12] = w0;
+        coeffs[crate::geometric::E13] = w1;
+        crate::geometric::from_coeffs(coeffs)
+    }
+}
+
+impl FromGeometric for Presence {
+    /// Class B-style reconstruction limit (contract §3): identity words are
+    /// a digest, so the typed value is the reconstruction path. The
+    /// returned value is an explicit empty placeholder (`Presence` has no
+    /// `Default`: a participant id cannot be defaulted honestly).
+    fn from_geometric(_mv: &GA3) -> Self {
+        Self::new(ParticipantId::new(""), "", PresenceTone::default())
+    }
+}
+
+impl IntoGeometric for ParticipantRoster {
+    /// **The roster is the multivector sum over its participants' presence
+    /// encodings.** Consequently `scalar` = participant count, the tone
+    /// blades carry the exact tone census, and identity words sum
+    /// commutatively — correct for a merged view. An empty roster is the
+    /// empty sum (legitimately zero; this is not a stub encoding).
+    fn into_geometric(self) -> GA3 {
+        let mut sum = GA3::zero();
+        for presence in &self.participants {
+            sum = sum.add(&presence.clone().into_geometric());
+        }
+        sum
+    }
+}
+
+impl FromGeometric for ParticipantRoster {
+    /// See [`Presence::from_geometric`]: the typed roster is the
+    /// reconstruction path.
+    fn from_geometric(_mv: &GA3) -> Self {
+        Self::default()
+    }
+}
+
+/// Exact tone census read off a roster multivector (contract §6).
+///
+/// This is the GA->render reader: counts come from the blade coefficients
+/// alone — `scalar` = participants, `e1/e2/e3` = Local/Collaborator/Passive —
+/// never from the typed value.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct ToneCensus {
+    /// Total participants (the scalar slot).
+    pub participants: usize,
+    /// Participants in the `Local` tone (the `e1` blade).
+    pub local: usize,
+    /// Participants in the `Collaborator` tone (the `e2` blade).
+    pub collaborator: usize,
+    /// Participants in the `Passive` tone (the `e3` blade).
+    pub passive: usize,
+}
+
+/// Read the exact tone census from a roster multivector.
+///
+/// Coefficients are exact integers (tone blades are unit sums, identity
+/// words live in other blades), so rounding is exact by construction.
+#[must_use]
+pub fn tone_census(mv: &GA3) -> ToneCensus {
+    ToneCensus {
+        participants: mv.get(crate::geometric::SCALAR).round() as usize,
+        local: mv.get(crate::geometric::E1).round() as usize,
+        collaborator: mv.get(crate::geometric::E2).round() as usize,
+        passive: mv.get(crate::geometric::E3).round() as usize,
+    }
+}
+
+/// Presence-slot annotation derived **from the multivector alone** — the
+/// end-to-end GA->render path for 0.1.0 (contract §6).
+///
+/// Produces display text such as `"you · 2 collaborators · 1 passive"`;
+/// feed it to
+/// [`Annotation::PresenceSlot`](crate::annotation::Annotation::PresenceSlot).
+#[must_use]
+pub fn presence_annotation(mv: &GA3) -> String {
+    let census = tone_census(mv);
+    if census.participants == 0 {
+        return "empty".to_string();
+    }
+    let mut parts = Vec::with_capacity(3);
+    if census.local > 0 {
+        parts.push("you".to_string());
+    }
+    if census.collaborator > 0 {
+        let s = if census.collaborator == 1 { "" } else { "s" };
+        parts.push(format!("{} collaborator{}", census.collaborator, s));
+    }
+    if census.passive > 0 {
+        let s = if census.passive == 1 { "" } else { "s" };
+        parts.push(format!("{} passive{}", census.passive, s));
+    }
+    parts.join(" · ")
 }
 
 #[cfg(test)]

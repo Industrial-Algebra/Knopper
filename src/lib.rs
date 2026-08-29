@@ -10,6 +10,7 @@ pub mod demo_ui;
 pub mod diff;
 pub mod effect;
 pub mod focus;
+pub mod geometric;
 pub mod id;
 pub mod input;
 pub mod layout;
