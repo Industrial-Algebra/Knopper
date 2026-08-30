@@ -15,8 +15,23 @@ pub struct InputState {
 }
 
 impl IntoGeometric for InputState {
+    /// Class B (structured discriminant): `e1` = cursor, `e2` = value
+    /// length, `e12/e13` = [`Digest`](crate::geometric::Digest) of the
+    /// value, `e23/e123` = digest of the committed value (`None` is the
+    /// reserved zero pair, so `Some("")` is distinct). Scalar reserved.
     fn into_geometric(self) -> GA3 {
-        GA3::zero()
+        let mut c = [0.0; crate::geometric::BLADES];
+        c[crate::geometric::E1] = self.cursor as f64;
+        c[crate::geometric::E2] = self.value.len() as f64;
+        let (v0, v1) = crate::geometric::Digest::of_bytes(self.value.as_bytes());
+        c[crate::geometric::E12] = v0;
+        c[crate::geometric::E13] = v1;
+        if let Some(committed) = self.committed {
+            let (k0, k1) = crate::geometric::Digest::of_bytes(committed.as_bytes());
+            c[crate::geometric::E23] = k0;
+            c[crate::geometric::E123] = k1;
+        }
+        crate::geometric::from_coeffs(c)
     }
 }
 

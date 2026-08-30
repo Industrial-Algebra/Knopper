@@ -38,6 +38,30 @@ treated as unstable until 0.2.0.
   palette, modal helper
 - Composable via shared helpers in `compose`
 
+### Added — Geometric substrate made honest (identity restoration, Unit 2)
+- **Encoding contract** (`docs/design/geometric-encoding-contract.md`) —
+  the blade ledger over GA3's 8 coefficients, Class A (exact round-trip) vs
+  Class B (structured discriminant) encoding rules, and the bridge that
+  keeps GA3 as the fingerprint layer while higher-grade math lives at the
+  amari/Borsalino seam
+- **`geometric` module** — blade constants (`SCALAR`..`E123`) and the
+  versioned `Digest` (SHA-256, two 26-bit integer words chosen so
+  multivector sums stay exact and order-independent)
+- **All 11 zero-stub `IntoGeometric` impls replaced** — every machine
+  state now encodes into named blades per the contract register (exact
+  for button/toggle/list/tabs; structured discriminants for
+  input/textarea/list-detail/palette/demos; structural fingerprint for
+  `Scene`)
+- **Semantically true collaboration encodings** — presence tones are unit
+  coefficients on their own basis blades (`Local`→e1, `Collaborator`→e2,
+  `Passive`→e3), and `ParticipantRoster` is the multivector sum over its
+  participants: roster merge *is* addition, order-independent by
+  construction
+- **The first geometry reader** — `tone_census` / `presence_annotation`
+  derive display-meaningful presence-slot content from the multivector
+  alone (GA→render path, exercised end-to-end in
+  `tests/geometric_reader.rs`)
+
 ### Added — Collaboration-ready contract
 - **`ParticipantId` / `Presence` / `ParticipantRoster`** — canonical
   `Shared` payload for multi-user sessions

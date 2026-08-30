@@ -36,8 +36,28 @@ impl Default for CommandPaletteState {
 }
 
 impl IntoGeometric for CommandPaletteState {
+    /// Class B aggregate: `1` = filtered length, `e1` = open marker,
+    /// `e2/e3` = committed value/marker, `e12/e13` = digest of the child
+    /// [`InputState`] encoding,
+    /// `e23/e123` = digest of the child
+    /// [`ListState`] encoding.
     fn into_geometric(self) -> GA3 {
-        GA3::zero()
+        let input = self.input.into_geometric();
+        let list = self.list.into_geometric();
+        let (i0, i1) = crate::geometric::Digest::of_multivector(&input);
+        let (l0, l1) = crate::geometric::Digest::of_multivector(&list);
+        let mut c = [0.0; crate::geometric::BLADES];
+        c[crate::geometric::SCALAR] = self.filtered.len() as f64;
+        c[crate::geometric::E1] = f64::from(u8::from(self.open));
+        if let Some(committed) = self.committed {
+            c[crate::geometric::E2] = committed as f64;
+            c[crate::geometric::E3] = 1.0;
+        }
+        c[crate::geometric::E12] = i0;
+        c[crate::geometric::E13] = i1;
+        c[crate::geometric::E23] = l0;
+        c[crate::geometric::E123] = l1;
+        crate::geometric::from_coeffs(c)
     }
 }
 

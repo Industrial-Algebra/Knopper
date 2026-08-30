@@ -15,14 +15,22 @@ pub struct ListState {
 }
 
 impl IntoGeometric for ListState {
+    /// Class A (exact): `1` = selected, `e1` = scroll (u16 is exact in f64).
     fn into_geometric(self) -> GA3 {
-        GA3::zero()
+        let mut c = [0.0; crate::geometric::BLADES];
+        c[crate::geometric::SCALAR] = self.selected as f64;
+        c[crate::geometric::E1] = f64::from(self.scroll);
+        crate::geometric::from_coeffs(c)
     }
 }
 
 impl FromGeometric for ListState {
-    fn from_geometric(_mv: &GA3) -> Self {
-        Self::default()
+    /// Class A inverse of [`IntoGeometric`](IntoGeometric-for-ListState).
+    fn from_geometric(mv: &GA3) -> Self {
+        Self {
+            selected: mv.get(crate::geometric::SCALAR) as usize,
+            scroll: mv.get(crate::geometric::E1) as u16,
+        }
     }
 }
 

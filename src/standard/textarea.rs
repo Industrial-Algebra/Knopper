@@ -17,8 +17,27 @@ pub struct TextareaState {
 }
 
 impl IntoGeometric for TextareaState {
+    /// Class B (structured discriminant): `1` = preferred column value,
+    /// `e1/e2` = cursor row/col, `e3` = preferred marker (0/1),
+    /// `e12/e13` = digest of the value, `e23/e123` = digest of the
+    /// committed value (`None` = reserved zero pair).
     fn into_geometric(self) -> GA3 {
-        GA3::zero()
+        let mut c = [0.0; crate::geometric::BLADES];
+        c[crate::geometric::E1] = self.cursor_row as f64;
+        c[crate::geometric::E2] = self.cursor_col as f64;
+        if let Some(preferred) = self.preferred_col {
+            c[crate::geometric::SCALAR] = preferred as f64;
+            c[crate::geometric::E3] = 1.0;
+        }
+        let (v0, v1) = crate::geometric::Digest::of_bytes(self.value.as_bytes());
+        c[crate::geometric::E12] = v0;
+        c[crate::geometric::E13] = v1;
+        if let Some(committed) = self.committed {
+            let (k0, k1) = crate::geometric::Digest::of_bytes(committed.as_bytes());
+            c[crate::geometric::E23] = k0;
+            c[crate::geometric::E123] = k1;
+        }
+        crate::geometric::from_coeffs(c)
     }
 }
 
