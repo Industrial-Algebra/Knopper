@@ -3,6 +3,8 @@
 
 pub mod annotation;
 pub mod backend;
+#[cfg(feature = "collaboration")]
+pub mod capability;
 pub mod collaboration;
 pub mod compose;
 pub mod demo;

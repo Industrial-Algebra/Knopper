@@ -62,6 +62,24 @@ treated as unstable until 0.2.0.
   alone (GA→render path, exercised end-to-end in
   `tests/geometric_reader.rs`)
 
+### Added — Schubert capability seam (feature `collaboration`; identity restoration, Unit 3)
+- **`CapabilityGate`** — a Schubert `AccessController` plus a semantic
+  `NodeId` → required-capabilities registry, bridged from collaboration's
+  `ParticipantId` (already-registered principals accepted); per-node
+  Schubert decisions, fail-closed on errors; `gated_scene` projects
+  not-granted gated nodes as `disabled`, reusing the existing principled
+  focus/activation skip path
+- **`CapabilityRuntime`** — a `Runtime` wrapper consulting the gate on
+  `Activate` events: not-granted activations are suppressed, the most
+  recent denial exposed via `last_denial` (hosts render it); with no gate
+  installed it behaves exactly like the plain runtime
+- **Impossible-combination detection as the worked example** —
+  separation of duties modeled in Gr(2,4): `review` = σ₂, `deploy` = σ₁₁,
+  σ₂·σ₁₁ = 0, so a principal holding *both* is rejected with
+  `Impossible { conflicting }` — geometry, not a hand-written exclusion
+  rule
+- Feature off by default; zero cost on the default build
+
 ### Added — Collaboration-ready contract
 - **`ParticipantId` / `Presence` / `ParticipantRoster`** — canonical
   `Shared` payload for multi-user sessions
