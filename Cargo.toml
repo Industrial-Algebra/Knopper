@@ -2,7 +2,6 @@
 name = "Knopper"
 version = "0.1.0"
 edition = "2024"
-default-run = "Knopper"
 license = "Apache-2.0"
 repository = "https://github.com/Industrial-Algebra/Knopper"
 description = "Functional-reactive terminal UI framework with a machine-centered model and a scene algebra, designed multi-user from the ground up."
@@ -10,6 +9,18 @@ description = "Functional-reactive terminal UI framework with a machine-centered
 [lib]
 name = "knopper"
 path = "src/lib.rs"
+
+# The binary is the demo harness (workspace + review demos, --shell):
+# reference code, not API. Gated so default builds are library-only.
+[[bin]]
+name = "knopper-demo"
+path = "src/main.rs"
+required-features = ["demo"]
+
+[[bin]]
+name = "review_demo"
+path = "src/bin/review_demo.rs"
+required-features = ["demo"]
 
 [features]
 default = []
@@ -19,6 +30,9 @@ notcurses = ["dep:notcurses"]
 # projection of gated controls, powered by Schubert calculus.
 # Off by default — zero cost on the default build.
 collaboration = ["dep:schubert"]
+# Demo harness: the `knopper-demo` binary and the demo machines it
+# drives (reference code; no API-stability promises).
+demo = []
 
 [dependencies]
 cliffy-core = "0.3.1"

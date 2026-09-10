@@ -13,14 +13,17 @@ the repo. This chapter is the summary a host author needs.
 - **Presence as overlays.** Remote cursors/selections render through
   `Annotation::{PresenceSlot, RemoteCursor}` — never through focus.
 
-## Capability seam (0.2.0, designed)
+## Capability seam (landed, `collaboration` feature)
 
-Per-participant capabilities (Schubert `AccessController`) map onto the
-embedding contract's `Context` lane: the host pushes the participant's
-capabilities in `Context`, and machines consult them when projecting
-capability-gated controls (disabled vs. hidden per `PresenceTone`). The exact
-`AccessController` 0.3.0 API surface was verified against Schubert's code; the
-integration lands behind a `collaboration` feature in 0.2.0.
+The Schubert capability seam shipped (identity-restoration Unit 3) behind
+the `collaboration` feature against Schubert 0.5: `CapabilityGate`
+(controller + node→requirement registry + `ParticipantId` bridge,
+fail-closed decisions, `gated_scene` projection through the existing
+`disabled` semantics) and `CapabilityRuntime` (activation gating with
+`last_denial`). The headline capability is impossible-combination
+detection — separation of duties as σ₂·σ₁₁ = 0, rejected with
+`Impossible { conflicting }`. See
+[Capability Gating](../guide/capability-gating.md).
 
 ## Checklist for a collaboration-ready machine
 

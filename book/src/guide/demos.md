@@ -7,8 +7,8 @@ in 0.2.0.
 ## The workspace host
 
 ```bash
-cargo run                              # raw-key interactive host
-cargo run --features notcurses -- --notcurses
+cargo run --features demo              # raw-key interactive host (demos are feature-gated)
+cargo run --features demo,notcurses -- --notcurses
 ```
 
 An interactive workspace exercising the standard machines: list, input,
@@ -20,7 +20,7 @@ miniature.
 ## The review workspace
 
 ```bash
-cargo run -- --demo review
+cargo run --features demo -- --demo review
 ```
 
 A review-focused composition: query input, draft editing, list-detail

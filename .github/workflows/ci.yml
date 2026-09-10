@@ -50,6 +50,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Run clippy (default features)
         run: cargo clippy --all-targets -- -D warnings
+      - name: cargo clippy --features demo -- -D warnings
+        run: cargo clippy --all-targets --features demo -- -D warnings
 
   test:
     name: Test
@@ -61,6 +63,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Run tests (default features)
         run: cargo test
+      - name: cargo test --features demo
+        run: cargo test --features demo
 
   doc:
     name: Documentation
@@ -108,6 +112,8 @@ jobs:
         run: cargo clippy --all-targets --features notcurses -- -D warnings
       - name: cargo test --features notcurses
         run: cargo test --features notcurses
+      - name: cargo test --features demo,notcurses
+        run: cargo test --features demo,notcurses
       - name: cargo doc --features notcurses
         run: cargo doc --no-deps --features notcurses
         env:

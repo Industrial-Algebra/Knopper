@@ -15,12 +15,25 @@ The four pre-release milestones are substantively complete:
 | M2 — collaboration-readiness | ✅ Done | `collaboration` module (`ParticipantId`/`Presence`/`ParticipantRoster`); code-grounded contract doc; Schubert 0.3.0 API verified and mapped for the 0.2.0 capability seam |
 | M3 — runtime event policy + tests | ✅ Done | Dispatch-precedence guide; first integration test crate (`tests/runtime_pipeline.rs`) characterizing the full pipeline |
 | M4 — release shaping | ✅ This doc | License headers + LICENSE + Cargo metadata; API surface review; release notes |
+| Identity Unit 1 — perf | ✅ Done | `diff_render_ops` O(n²)→O(n); rayon wired, measured (+14% steady state), reverted honestly; harness extended to 10k appends |
+| Identity Unit 2 — GA honesty | ✅ Done | Encoding contract (blade ledger, Class A/B); all 11 zero-stub encodings replaced; collaboration encodings semantically true (roster = multivector sum); first GA→render reader (`tone_census`/`presence_annotation` → `PresenceSlot`) |
+| Identity Unit 3 — Schubert seam | ✅ Done | `collaboration` feature: `CapabilityGate` + `CapabilityRuntime` over Schubert 0.5; impossible-combination detection (σ₂·σ₁₁ = 0) as the worked example |
+| Identity Unit 4 — debts + sweep | ✅ This pass | Viewport × presence-anchor design decided (annotation lane); demos feature-gated (`demo`); this checklist refreshed; mdbook GA + capability chapters added |
 
-Quality gate (must be green at cut):
+Quality gate (must be green at cut) — measured per feature configuration
+(`--all-features` is no longer the gate: it drags in `notcurses`, which
+needs the self-hosted runner):
 
 - [x] `cargo fmt --all`
-- [x] `cargo clippy --all-targets --all-features -- -D warnings`
-- [x] `cargo test --all-features` — 119 unit + 5 integration tests pass
+- [x] `cargo clippy --all-targets -- -D warnings` (default)
+- [x] `cargo clippy --all-targets --features demo -- -D warnings`
+- [x] `cargo clippy --all-targets --features collaboration -- -D warnings`
+- [x] `cargo test` — 135 lib + 19 integration (6 embedding + 8 reader + 5 pipeline)
+- [x] `cargo test --features demo` — demos compile and pass
+- [x] `cargo test --features collaboration` — 142 lib (capability seam suite)
+- [x] `cargo test --features demo,notcurses` — verified locally (notcurses 3.0.17); CI lane on the self-hosted runner
+- [x] `cargo doc --no-deps` clean in default, `demo`, and `collaboration` configurations
+- [x] `mdbook build` — 0 broken links
 
 ## API surface review
 
@@ -34,6 +47,12 @@ intentionally shaped, with one structural caveat.
 - **Pipeline:** `Runtime`, `route_event`, `RoutedEvent`, `LayoutNode`,
   `resolve_layout`, `render_ops`, `RenderOp`, `diff_render_ops`, `PatchOp`,
   `Renderer`/`MockRenderer`, `TerminalBackend`/`MockBackend`/`BackendCommand`.
+- **Geometric substrate:** `geometric` (blade constants `SCALAR`..`E123`,
+  `Digest`), the encoding contract's Rust surface; `tone_census` /
+  `presence_annotation` readers in `collaboration`.
+- **Capability seam (`collaboration` feature):** `CapabilityGate`,
+  `CapabilityRuntime`, re-exports of Schubert's `AccessController` /
+  `Capability` / `CapabilityKind` / `PrincipalId`.
 - **Focus:** `FocusState`, `FocusPath`, `FocusOrder`, `FocusNavigation`,
   `FocusScopePolicy`, plus compose helpers (`child_has_focus`,
   `dispatch_if_focused`, `trap_focus`, `update_child`, `project_child`,
@@ -161,32 +180,52 @@ should be treated as unstable until 0.2.0.
 - **Collaboration-ready.** `ParticipantId` / `Presence` /
   `ParticipantRoster` give downstream apps a canonical `Shared` payload for
   multi-user sessions. One `Runtime` per participant; shared state flows in
-  via `Runtime::set_shared`. Schubert capability integration is designed
-  and mapped for 0.2.0.
-- **Two runnable demos.** A main interactive workspace host and a
-  review-focused workspace, exercising the standard machines and
-  composition helpers.
+  via `Runtime::set_shared`.
+- **An honest geometric substrate.** Every machine state encodes into GA3
+  per a normative encoding contract: exact Class-A encodings where fields
+  fit, structured Class-B discriminants where they don't, and a
+  collaboration lane where the roster merge *is* multivector addition —
+  presence tones as basis blades, participant count in the scalar, exact
+  tone census readable off the coefficients. A reader path derives
+  presence-slot annotations from the multivector alone.
+- **Schubert capability gating** (`collaboration` feature). Capabilities
+  are Schubert conditions; access checks intersect the geometry.
+  Impossible combinations — separation of duties as σ₂·σ₁₁ = 0 — are
+  rejected with the conflicting pair named, which set-membership ACLs
+  cannot do.
+- **O(n) streaming append.** Diffing was profiled, fixed (O(n²)→O(n)),
+  and measured (1k-line appends 0.826→0.305 ms; 10k-line appends 3.7 ms);
+  rayon was wired, measured slower, and reverted on the numbers.
+- **Runnable demos behind a `demo` feature.** A main interactive
+  workspace host and a review-focused workspace, exercising the standard
+  machines and composition helpers. Default builds are library-only.
 
 #### Getting started
 
 ```bash
-./scripts/setup-hooks.sh
-cargo run                              # raw-key interactive host
-cargo run --features notcurses -- --notcurses
-cargo run -- --demo review
+cargo run --features demo              # raw-key interactive host
+cargo run --features demo,notcurses -- --notcurses
+cargo run --features demo -- --demo review
 ```
 
 #### Quality
 
-124 tests (119 unit + 5 integration), `clippy -D warnings` clean across all
-feature combinations, `cargo fmt` clean. Apache-2.0 licensed.
+154 tests (142 unit with the `collaboration` feature + 19 integration),
+`clippy -D warnings` clean in every feature configuration exercised
+(default, `demo`, `collaboration`, `demo,notcurses`), `cargo fmt` clean,
+`cargo doc` warning-free, mdbook builds with 0 broken links. Apache-2.0
+licensed.
 
 #### Not stable in 0.1.0
 
-- Demo modules (`demo`, `demo_ui`, `review_demo`) are public for reference
-  but are not stable API.
+- Demo modules (`demo`, `demo_ui`, `review_demo`) are reference code
+  behind the `demo` feature — no API-stability promises, and default
+  builds don't compile them.
+- The capability seam's exact decision-mapping (`Underconstrained`
+  semantics in particular) may refine in 0.2.0.
 - Any item not documented as stable in the guides. Expect refinement in
-  0.2.0, especially around the collaboration seam and demo organization.
+  0.2.0, especially around viewport-bounded projection and the presence
+  annotation lane (design decided, not yet implemented).
 
 ---
 
