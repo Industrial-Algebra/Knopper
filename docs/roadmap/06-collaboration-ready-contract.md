@@ -41,7 +41,7 @@ This document specifies each of those, and the `collaboration` module
 | Single-local-cursor rendering | ✅ Supported | `Machine::cursor_position` |
 | Remote presence derivation in projection | ✅ Supported (manual) | parent `project` reads roster, emits overlays |
 | Distribution / CRDT merge / network transport | ❌ Out of scope 0.1.0 | downstream-owned |
-| Schubert capability checking | ❌ Out of scope 0.1.0 | planned 0.2.0, see §5 |
+| Schubert capability checking | ✅ behind `collaboration` feature | `CapabilityGate` + `CapabilityRuntime` (Unit 3), see §5 |
 | Multi-cursor input handling per key | ❌ Out of scope 0.1.0 | one local cursor; remotes are overlays |
 
 ## 1. The participant runtime model
@@ -147,9 +147,14 @@ fn project(model: &Model, shared: &WorkspaceShared, ctx: &Ctx) -> Scene<Msg> {
 ## 5. Schubert integration — corrected against the 0.3.0 API
 
 The earlier sketch in [05] used approximate signatures. Against the actual
-Schubert 0.3.0 release, the integration maps as follows. **This remains
-planned for Knopper 0.2.0 behind a `collaboration` feature; it is documented
-here so downstream projects can plan.**
+Schubert release, the integration maps as follows. **Landed (identity-restoration
+Unit 3) behind the `collaboration` feature against Schubert 0.5** (a superset
+of the 0.3.0 surface this section was verified against): `CapabilityGate`
+(controller + node→requirements registry + `ParticipantId` bridge,
+fail-closed decisions, `gated_scene` projection through the existing
+`disabled` semantics) and `CapabilityRuntime` (activation gating with
+`last_denial`). Impossible-combination detection (σ₂·σ₁₁ = 0 separation of
+duties in Gr(2,4)) is the worked example in `src/capability.rs`.
 
 ### Relevant Schubert 0.3.0 types
 
