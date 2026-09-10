@@ -7,7 +7,10 @@ pub mod backend;
 pub mod capability;
 pub mod collaboration;
 pub mod compose;
+// Demo machines are reference code behind the `demo` feature.
+#[cfg(feature = "demo")]
 pub mod demo;
+#[cfg(feature = "demo")]
 pub mod demo_ui;
 pub mod diff;
 pub mod effect;
@@ -19,6 +22,7 @@ pub mod layout;
 pub mod machine;
 pub mod render;
 pub mod renderer;
+#[cfg(feature = "demo")]
 pub mod review_demo;
 pub mod routing;
 pub mod runtime;
@@ -39,6 +43,7 @@ pub use cliffy_core::{FromGeometric, GA3, IntoGeometric};
 pub use compose::{
     child_has_focus, dispatch_if_focused, map_effect, project_child, trap_focus, update_child,
 };
+#[cfg(feature = "demo")]
 pub use demo::{DemoContext, DemoMachine, DemoMsg, DemoState};
 pub use diff::{PatchOp, diff_render_ops};
 pub use effect::Effect;
@@ -49,6 +54,7 @@ pub use layout::{LayoutKind, LayoutNode, Rect, Size, find_node, measure, resolve
 pub use machine::{Machine, PureMachine, SceneBehavior};
 pub use render::{RenderOp, render_ops};
 pub use renderer::{MockRenderer, Renderer, render_once};
+#[cfg(feature = "demo")]
 pub use review_demo::{ReviewDemoContext, ReviewDemoMachine, ReviewDemoMsg, ReviewDemoState};
 pub use routing::{RoutedEvent, activation_message, focus_path, route_event};
 pub use runtime::Runtime;

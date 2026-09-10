@@ -73,13 +73,13 @@ cargo test --all-features
 Run the current raw-key interactive demo host with:
 
 ```bash
-cargo run
+cargo run --features demo
 ```
 
 Optional Notcurses-backed rendering during the raw host:
 
 ```bash
-cargo run --features notcurses -- --notcurses
+cargo run --features demo,notcurses -- --notcurses
 ```
 
 The `notcurses` feature links against the **system** notcurses library.
@@ -90,7 +90,7 @@ system). CI installs this automatically.```
 If you want the older command-driven shell instead, use:
 
 ```bash
-cargo run -- --shell
+cargo run --features demo -- --shell
 ```
 
 Note: `--shell` is a diagnostic command driver, not a fullscreen TUI. It prints the command list plus a textual snapshot/debug view of the demo state.
@@ -100,11 +100,11 @@ The raw-key host is the actual interactive terminal demo. It renders a composed 
 The project now includes a second review-focused demo accessible from the main host as well:
 
 ```bash
-cargo run -- --demo review
-cargo run --features notcurses -- --notcurses --demo review
+cargo run --features demo -- --demo review
+cargo run --features demo,notcurses -- --notcurses --demo review
 ```
 
-Cargo's default run target is now the main `Knopper` host binary, so plain `cargo run ...` launches that host. The older standalone `review_demo` binary still exists, but the preferred path is to use the main host with `--demo review`.
+The demo host is the `knopper-demo` binary (built with `--features demo`), so plain `cargo run ...` launches that host. The older standalone `review_demo` binary still exists, but the preferred path is to use the main host with `--demo review`.
 
 This review-focused workspace exists specifically to exercise the extracted composition helper layer in `src/demo_ui.rs` against a second application shape.
 

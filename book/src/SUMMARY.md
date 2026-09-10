@@ -9,6 +9,7 @@
 - [Scene Algebra](./concepts/scene-algebra.md)
 - [The Focus Model](./concepts/focus-model.md)
 - [Collaboration: Shared and Model](./concepts/collaboration.md)
+- [The Geometric Substrate](./concepts/geometric-substrate.md)
 
 # Guide
 
@@ -18,6 +19,7 @@
 - [Runtime Event Policy](./guide/runtime-event-policy.md)
 - [Focus, Modals, and Disabled Nodes](./guide/focus-and-modals.md)
 - [Embedding Knopper](./guide/embedding.md)
+- [Capability Gating](./guide/capability-gating.md)
 - [Running the Demos](./guide/demos.md)
 
 # API Reference
