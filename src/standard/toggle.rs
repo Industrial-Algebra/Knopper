@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{
     Color, Effect, Key, KeyEvent, Machine, NodeId, Role, Scene, SceneBehavior, SizeConstraint,
     Style,
@@ -10,14 +13,20 @@ pub struct ToggleState {
 }
 
 impl IntoGeometric for ToggleState {
+    /// Class A (exact): `1` = checked (0/1).
     fn into_geometric(self) -> GA3 {
-        GA3::zero()
+        let mut c = [0.0; crate::geometric::BLADES];
+        c[crate::geometric::SCALAR] = f64::from(u8::from(self.checked));
+        crate::geometric::from_coeffs(c)
     }
 }
 
 impl FromGeometric for ToggleState {
-    fn from_geometric(_mv: &GA3) -> Self {
-        Self::default()
+    /// Class A inverse of [`IntoGeometric`](IntoGeometric-for-ToggleState).
+    fn from_geometric(mv: &GA3) -> Self {
+        Self {
+            checked: mv.get(crate::geometric::SCALAR) > 0.5,
+        }
     }
 }
 

@@ -1,17 +1,28 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 pub mod annotation;
 pub mod backend;
+#[cfg(feature = "collaboration")]
+pub mod capability;
+pub mod collaboration;
 pub mod compose;
+// Demo machines are reference code behind the `demo` feature.
+#[cfg(feature = "demo")]
 pub mod demo;
+#[cfg(feature = "demo")]
 pub mod demo_ui;
 pub mod diff;
 pub mod effect;
 pub mod focus;
+pub mod geometric;
 pub mod id;
 pub mod input;
 pub mod layout;
 pub mod machine;
 pub mod render;
 pub mod renderer;
+#[cfg(feature = "demo")]
 pub mod review_demo;
 pub mod routing;
 pub mod runtime;
@@ -25,10 +36,14 @@ pub use backend::notcurses::NotcursesBackend;
 pub use backend::{
     BackendCommand, BackendEntry, BackendState, MockBackend, TerminalBackend, backend_commands,
 };
+pub use collaboration::{ParticipantId, ParticipantRoster, Presence, PresenceTone};
+// Re-exported so hosts implementing custom `Model` / `Shared` types do not
+// need a direct cliffy-core dependency (embedding contract §3).
+pub use cliffy_core::{FromGeometric, GA3, IntoGeometric};
 pub use compose::{
-    child_has_focus, dispatch_if_focused, map_effect, next_focus_in_order, previous_focus_in_order,
-    project_child, trap_focus, update_child,
+    child_has_focus, dispatch_if_focused, map_effect, project_child, trap_focus, update_child,
 };
+#[cfg(feature = "demo")]
 pub use demo::{DemoContext, DemoMachine, DemoMsg, DemoState};
 pub use diff::{PatchOp, diff_render_ops};
 pub use effect::Effect;
@@ -39,6 +54,7 @@ pub use layout::{LayoutKind, LayoutNode, Rect, Size, find_node, measure, resolve
 pub use machine::{Machine, PureMachine, SceneBehavior};
 pub use render::{RenderOp, render_ops};
 pub use renderer::{MockRenderer, Renderer, render_once};
+#[cfg(feature = "demo")]
 pub use review_demo::{ReviewDemoContext, ReviewDemoMachine, ReviewDemoMsg, ReviewDemoState};
 pub use routing::{RoutedEvent, activation_message, focus_path, route_event};
 pub use runtime::Runtime;
@@ -55,7 +71,9 @@ pub use standard::list::{ListContext, ListIds, ListMachine, ListMsg, ListState, 
 pub use standard::list_detail::{
     ListDetailContext, ListDetailMachine, ListDetailMsg, ListDetailState,
 };
-pub use standard::modal::{ModalFocusConfig, ModalIds, ModalMsg, modal_key_msg, modal_scene};
+pub use standard::modal::{
+    ModalFocusConfig, ModalIds, ModalKeyAction, ModalMsg, modal_key_msg, modal_scene,
+};
 pub use standard::tabs::{TabsContext, TabsMachine, TabsMsg, TabsState, tabs_key_msg};
 pub use standard::textarea::{
     TextareaContext, TextareaMachine, TextareaMsg, TextareaState, textarea_key_msg,

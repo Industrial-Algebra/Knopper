@@ -1,0 +1,660 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Scene → layout → render pipeline - Knopper</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A functional-reactive terminal UI framework and collaboration substrate">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-feee7898.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-2aafcc7f.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Knopper</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/Industrial-Algebra/Knopper" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/Industrial-Algebra/Knopper/edit/develop/docs/docs/guides/04-scene-layout-render-pipeline.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="scene-layout-render-diff-and-backend-pipeline"><a class="header" href="#scene-layout-render-diff-and-backend-pipeline">Scene, Layout, Render, Diff, and Backend Pipeline</a></h1>
+<h2 id="purpose"><a class="header" href="#purpose">Purpose</a></h2>
+<p>This guide explains how a Knopper scene becomes terminal output.</p>
+<p>It is intended to connect the user-facing machine model to the lower-level rendering pipeline so that framework users can understand:</p>
+<ul>
+<li>what a machine is projecting</li>
+<li>how scene structure becomes geometry</li>
+<li>how render ops are produced</li>
+<li>how diffs and backend commands are generated</li>
+<li>where cursor placement fits in</li>
+</ul>
+<p>If the earlier guides explain how to author and compose machines, this guide explains what happens after projection.</p>
+<h2 id="the-big-picture"><a class="header" href="#the-big-picture">The big picture</a></h2>
+<p>At a high level, Knopper currently follows this flow:</p>
+<pre><code class="language-text">Machine state + shared state + context
+-&gt; Scene projection
+-&gt; Layout resolution
+-&gt; Render-op lowering
+-&gt; Diff
+-&gt; Backend commands
+-&gt; Backend execution
+</code></pre>
+<p>This is one of Knopper’s most important architectural separations.</p>
+<p>Why it matters:</p>
+<ul>
+<li>machines stay backend-neutral</li>
+<li>scenes stay semantic</li>
+<li>layout stays explicit and testable</li>
+<li>render ops stay structured</li>
+<li>backends stay isolated</li>
+<li>diffs can exploit stable identity</li>
+</ul>
+<h2 id="step-1-scene-projection"><a class="header" href="#step-1-scene-projection">Step 1: scene projection</a></h2>
+<p>A machine projects a <code>Scene&lt;Msg&gt;</code> or, more generally, a <code>Behavior&lt;Scene&lt;Msg&gt;&gt;</code>.</p>
+<p>A scene is the semantic UI description.</p>
+<p>It expresses things like:</p>
+<ul>
+<li>text</li>
+<li>rows and columns</li>
+<li>borders</li>
+<li>padding</li>
+<li>scroll and viewport structure</li>
+<li>overlays and stacks</li>
+<li>alignment</li>
+<li>annotations</li>
+<li>focus scopes</li>
+<li>activation and focusability</li>
+</ul>
+<p>A scene is <strong>not</strong> yet laid out terminal output.</p>
+<p>It does not directly say:</p>
+<ul>
+<li>exact final coordinates of every node</li>
+<li>exact backend commands</li>
+<li>terminal-plane allocation</li>
+</ul>
+<p>That is the job of later stages.</p>
+<h2 id="step-2-layout-resolution"><a class="header" href="#step-2-layout-resolution">Step 2: layout resolution</a></h2>
+<p>Layout turns a <code>Scene</code> into a <code>LayoutNode</code> tree with concrete geometry.</p>
+<p>The main API is:</p>
+<ul>
+<li><code>resolve_layout(scene, bounds) -&gt; LayoutNode</code></li>
+</ul>
+<p>Key layout types include:</p>
+<ul>
+<li><code>Rect</code></li>
+<li><code>Size</code></li>
+<li><code>LayoutNode</code></li>
+<li><code>LayoutKind</code></li>
+</ul>
+<h3 id="what-layout-resolves"><a class="header" href="#what-layout-resolves">What layout resolves</a></h3>
+<p>Layout determines:</p>
+<ul>
+<li>resolved rectangles</li>
+<li>child positioning inside rows/columns</li>
+<li>padding insets</li>
+<li>border insets</li>
+<li>alignment placement</li>
+<li>sized constraints</li>
+<li>viewport structure</li>
+<li>scroll structure</li>
+<li>inherited/effective styles</li>
+</ul>
+<h3 id="what-layout-preserves-structurally"><a class="header" href="#what-layout-preserves-structurally">What layout preserves structurally</a></h3>
+<p>Some scene wrappers remain structural in layout rather than becoming visual draw commands themselves.</p>
+<p>Examples:</p>
+<ul>
+<li><code>FocusScope</code></li>
+<li><code>Align</code></li>
+<li><code>Padding</code></li>
+<li><code>Sized</code></li>
+<li><code>Viewport</code></li>
+<li><code>Scroll</code></li>
+<li><code>Border</code></li>
+<li><code>Annotated</code></li>
+</ul>
+<p>The important idea is:</p>
+<blockquote>
+<p>layout resolves geometry while preserving enough structure for render lowering to make correct decisions later.</p>
+</blockquote>
+<h2 id="rect-and-size"><a class="header" href="#rect-and-size"><code>Rect</code> and <code>Size</code></a></h2>
+<p><code>Rect</code> is the basic resolved geometry type:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct Rect {
+    pub x: u16,
+    pub y: u16,
+    pub width: u16,
+    pub height: u16,
+}
+<span class="boring">}</span></code></pre>
+<p><code>Size</code> is the measurement shape used during layout:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct Size {
+    pub width: u16,
+    pub height: u16,
+}
+<span class="boring">}</span></code></pre>
+<p>Machines usually do not manipulate these directly unless they are doing something advanced, but they matter for layout understanding and cursor placement.</p>
+<h2 id="layoutnode"><a class="header" href="#layoutnode"><code>LayoutNode</code></a></h2>
+<p>A <code>LayoutNode</code> is the resolved form of a scene node.</p>
+<p>It contains:</p>
+<ul>
+<li><code>id</code></li>
+<li><code>rect</code></li>
+<li><code>style</code></li>
+<li><code>kind</code></li>
+</ul>
+<p>This is important because identity is preserved through layout.</p>
+<p>That helps with:</p>
+<ul>
+<li>focus hit resolution</li>
+<li>cursor computation</li>
+<li>diffing</li>
+<li>backend patch stability</li>
+<li>future collaboration overlays</li>
+</ul>
+<h2 id="layoutkind"><a class="header" href="#layoutkind"><code>LayoutKind</code></a></h2>
+<p><code>LayoutKind</code> mirrors the scene structure at the layout layer.</p>
+<p>Examples include:</p>
+<ul>
+<li><code>Text</code></li>
+<li><code>Row</code></li>
+<li><code>Column</code></li>
+<li><code>Stack</code></li>
+<li><code>FocusScope</code></li>
+<li><code>Align</code></li>
+<li><code>Padding</code></li>
+<li><code>Sized</code></li>
+<li><code>Viewport</code></li>
+<li><code>Scroll</code></li>
+<li><code>Border</code></li>
+<li><code>Annotated</code></li>
+</ul>
+<p>This is how Knopper keeps the pipeline structured rather than collapsing everything into raw drawing too early.</p>
+<h2 id="finding-layout-nodes"><a class="header" href="#finding-layout-nodes">Finding layout nodes</a></h2>
+<p>Knopper provides:</p>
+<ul>
+<li><code>find_node(layout, id)</code></li>
+</ul>
+<p>This is particularly useful for machines that need geometry-aware behavior after layout.</p>
+<p>The main current use is cursor placement.</p>
+<h2 id="step-3-render-op-lowering"><a class="header" href="#step-3-render-op-lowering">Step 3: render-op lowering</a></h2>
+<p>Once layout is resolved, Knopper lowers the layout tree into backend-neutral render operations.</p>
+<p>The main API is:</p>
+<ul>
+<li><code>render_ops(layout) -&gt; Vec&lt;RenderOp&gt;</code></li>
+</ul>
+<p>Current render ops include:</p>
+<ul>
+<li><code>DrawText</code></li>
+<li><code>DrawBorder</code></li>
+<li><code>Annotate</code></li>
+<li><code>SetCursor</code></li>
+</ul>
+<p>These are not backend-specific. They are the renderer/backend-neutral bridge between semantic layout and terminal execution.</p>
+<h2 id="why-render-ops-exist"><a class="header" href="#why-render-ops-exist">Why render ops exist</a></h2>
+<p>Render ops matter because they:</p>
+<ul>
+<li>isolate machines from backend details</li>
+<li>make rendering testable</li>
+<li>create a stable diff boundary</li>
+<li>let different backends translate the same semantic result</li>
+</ul>
+<p>This is one of the reasons Knopper can have both:</p>
+<ul>
+<li>mock rendering/backend tests</li>
+<li>a real Notcurses backend</li>
+</ul>
+<p>without making machines aware of backend internals.</p>
+<h2 id="structural-lowering-rules"><a class="header" href="#structural-lowering-rules">Structural lowering rules</a></h2>
+<p>Not every layout node directly becomes a visible draw op.</p>
+<h3 id="text"><a class="header" href="#text">Text</a></h3>
+<p>A <code>LayoutKind::Text</code> node lowers to <code>RenderOp::DrawText</code>.</p>
+<h3 id="border"><a class="header" href="#border">Border</a></h3>
+<p>A <code>LayoutKind::Border</code> node lowers to a <code>DrawBorder</code>, then its child continues lowering.</p>
+<h3 id="annotated"><a class="header" href="#annotated">Annotated</a></h3>
+<p>A <code>LayoutKind::Annotated</code> node lowers an <code>Annotate</code> op, then lowers its child.</p>
+<h3 id="structural-wrappers"><a class="header" href="#structural-wrappers">Structural wrappers</a></h3>
+<p>Wrappers like these are structural in render lowering:</p>
+<ul>
+<li><code>FocusScope</code></li>
+<li><code>Align</code></li>
+<li><code>Padding</code></li>
+<li><code>Sized</code></li>
+</ul>
+<p>They affect geometry or traversal context, but do not directly emit their own visible draw ops.</p>
+<h2 id="viewport-and-scroll-in-render-lowering"><a class="header" href="#viewport-and-scroll-in-render-lowering">Viewport and scroll in render lowering</a></h2>
+<p>Viewport and scroll are particularly important because they influence clipping and translation.</p>
+<h3 id="viewport"><a class="header" href="#viewport">Viewport</a></h3>
+<p>A viewport establishes clipping.</p>
+<h3 id="scroll"><a class="header" href="#scroll">Scroll</a></h3>
+<p>A scroll wrapper adjusts the render context’s scroll offset and clipping behavior.</p>
+<p>This means hidden content may still exist semantically and geometrically, but only a visible portion becomes render ops.</p>
+<p>This is essential for usable scrolling behavior.</p>
+<h2 id="text-clipping"><a class="header" href="#text-clipping">Text clipping</a></h2>
+<p>Text clipping currently happens during render-op generation.</p>
+<p>That means the layout tree may preserve more text extent than is finally drawn, especially under viewport or scroll conditions.</p>
+<p>This is intentional.</p>
+<p>It allows hidden content to remain revealable via scrolling.</p>
+<h2 id="step-4-diffing"><a class="header" href="#step-4-diffing">Step 4: diffing</a></h2>
+<p>Knopper diffs render ops from one frame to the next.</p>
+<p>The main API is:</p>
+<ul>
+<li><code>diff_render_ops(previous, next) -&gt; Vec&lt;PatchOp&gt;</code></li>
+</ul>
+<p>Current patch forms are:</p>
+<ul>
+<li><code>PatchOp::Insert(RenderOp)</code></li>
+<li><code>PatchOp::Update(RenderOp)</code></li>
+<li><code>PatchOp::Remove(NodeId)</code></li>
+</ul>
+<h3 id="why-diffing-happens-here"><a class="header" href="#why-diffing-happens-here">Why diffing happens here</a></h3>
+<p>Diffing render ops instead of terminal bytes or semantic machine state is a practical middle ground.</p>
+<p>It gives Knopper:</p>
+<ul>
+<li>identity-aware updates</li>
+<li>backend-neutral patching</li>
+<li>reduced redraw work</li>
+<li>simpler testing</li>
+</ul>
+<h3 id="identity-matters"><a class="header" href="#identity-matters">Identity matters</a></h3>
+<p>Diffing relies heavily on stable <code>NodeId</code> identity.</p>
+<p>If your machine changes IDs unnecessarily, the diff sees churn and cannot preserve update stability well.</p>
+<p>That is one reason stable IDs are so important in machine authoring.</p>
+<h2 id="step-5-backend-command-generation"><a class="header" href="#step-5-backend-command-generation">Step 5: backend command generation</a></h2>
+<p>Patches are lowered into backend commands.</p>
+<p>The main API is:</p>
+<ul>
+<li><code>backend_commands(previous, patches) -&gt; Vec&lt;BackendCommand&gt;</code></li>
+</ul>
+<p>Current backend command forms include:</p>
+<ul>
+<li><code>DrawText</code></li>
+<li><code>DrawBorder</code></li>
+<li><code>Annotate</code></li>
+<li><code>SetCursor</code></li>
+<li><code>ClearNode</code></li>
+<li><code>ClearRect</code></li>
+</ul>
+<h3 id="update-behavior"><a class="header" href="#update-behavior">Update behavior</a></h3>
+<p>Current update behavior is roughly:</p>
+<ul>
+<li><code>Insert</code> -&gt; draw</li>
+<li><code>Update</code> -&gt; clear old rect, then redraw</li>
+<li><code>Remove</code> -&gt; clear old rect, then clear node identity</li>
+</ul>
+<p>This keeps the backend layer simple and explicit.</p>
+<h2 id="step-6-backend-execution"><a class="header" href="#step-6-backend-execution">Step 6: backend execution</a></h2>
+<p>Finally, a backend executes the backend commands.</p>
+<p>The backend abstraction is:</p>
+<ul>
+<li><code>TerminalBackend</code></li>
+</ul>
+<p>Current backend implementations include:</p>
+<ul>
+<li><code>MockBackend</code></li>
+<li>feature-gated <code>NotcursesBackend</code></li>
+</ul>
+<h2 id="mockbackend"><a class="header" href="#mockbackend"><code>MockBackend</code></a></h2>
+<p>Use <code>MockBackend</code> for tests and pipeline validation.</p>
+<p>It records executed commands and tracks backend state in a structured way.</p>
+<p>This is one of the reasons the Knopper pipeline is easy to test without depending on a live terminal backend.</p>
+<h2 id="notcursesbackend"><a class="header" href="#notcursesbackend"><code>NotcursesBackend</code></a></h2>
+<p>The Notcurses backend is feature-gated and uses real Notcurses integration.</p>
+<p>It is responsible for translating backend commands into concrete terminal behavior, including:</p>
+<ul>
+<li>plane usage and reuse</li>
+<li>text drawing</li>
+<li>border drawing</li>
+<li>cursor updates</li>
+<li>clearing and refresh behavior</li>
+</ul>
+<p>Importantly, Notcurses remains an implementation detail of the backend layer, not the public machine/scene model.</p>
+<h2 id="cursor-placement-in-the-pipeline"><a class="header" href="#cursor-placement-in-the-pipeline">Cursor placement in the pipeline</a></h2>
+<p>Cursor placement is not hardcoded in the renderer.</p>
+<p>Instead, the current model is:</p>
+<ol>
+<li>machine projects a scene</li>
+<li>layout resolves node geometry</li>
+<li>machine may compute cursor position from the resolved layout</li>
+<li>runtime passes that cursor position to the backend</li>
+</ol>
+<p>The relevant machine hook is:</p>
+<ul>
+<li><code>cursor_position(model, shared, ctx, layout)</code></li>
+</ul>
+<p>This is how controls like <code>InputMachine</code> and <code>TextareaMachine</code> place the cursor correctly.</p>
+<h3 id="why-this-is-good"><a class="header" href="#why-this-is-good">Why this is good</a></h3>
+<p>This keeps cursor behavior:</p>
+<ul>
+<li>semantic</li>
+<li>layout-aware</li>
+<li>testable</li>
+<li>backend-neutral</li>
+</ul>
+<p>It also aligns well with future collaboration overlays, since stable semantic anchors remain available.</p>
+<h2 id="runtime-integration"><a class="header" href="#runtime-integration">Runtime integration</a></h2>
+<p>The runtime ties the whole pipeline together.</p>
+<p>Important runtime methods include:</p>
+<ul>
+<li><code>layout(bounds)</code></li>
+<li><code>render_ops(bounds)</code></li>
+<li><code>diff(bounds)</code></li>
+<li><code>render(renderer, bounds)</code></li>
+<li><code>render_to_backend(backend, bounds)</code></li>
+<li><code>render_to_backend_with_cursor(...)</code></li>
+<li><code>render_to_backend_auto_cursor(...)</code></li>
+</ul>
+<p>This is the main path by which machine projection becomes terminal-visible output.</p>
+<h2 id="a-practical-walkthrough"><a class="header" href="#a-practical-walkthrough">A practical walkthrough</a></h2>
+<p>Suppose a machine projects:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>Scene::border(
+    root_id,
+    Scene::sized(
+        inner_id,
+        SizeConstraint::width(12),
+        Scene::text(label_id, "Run").focusable(),
+    ),
+)
+<span class="boring">}</span></code></pre>
+<p>Then the pipeline roughly does this.</p>
+<h3 id="scene"><a class="header" href="#scene">Scene</a></h3>
+<p>Semantic structure:</p>
+<ul>
+<li>border</li>
+<li>sized region</li>
+<li>text node</li>
+</ul>
+<h3 id="layout"><a class="header" href="#layout">Layout</a></h3>
+<p>Resolves:</p>
+<ul>
+<li>exact border rect</li>
+<li>exact inner rect</li>
+<li>effective style inheritance</li>
+<li>child geometry inside the border</li>
+</ul>
+<h3 id="render-lowering"><a class="header" href="#render-lowering">Render lowering</a></h3>
+<p>Produces something like:</p>
+<ul>
+<li><code>DrawBorder { id: root_id, ... }</code></li>
+<li><code>DrawText { id: label_id, content: "Run", ... }</code></li>
+</ul>
+<h3 id="diff"><a class="header" href="#diff">Diff</a></h3>
+<p>Compares these ops to previous-frame ops.</p>
+<h3 id="backend-commands"><a class="header" href="#backend-commands">Backend commands</a></h3>
+<p>Lowers the diff into draw/clear commands.</p>
+<h3 id="backend"><a class="header" href="#backend">Backend</a></h3>
+<p>Executes the commands on the target backend.</p>
+<p>That is the full semantic-to-terminal path.</p>
+<h2 id="what-machine-authors-should-care-about-most"><a class="header" href="#what-machine-authors-should-care-about-most">What machine authors should care about most</a></h2>
+<p>As a machine author, you do <strong>not</strong> usually need to work with every pipeline stage directly.</p>
+<p>The most important practical implications are:</p>
+<h3 id="1-project-semantic-scenes-not-backend-details"><a class="header" href="#1-project-semantic-scenes-not-backend-details">1. Project semantic scenes, not backend details</a></h3>
+<p>Stay at the scene layer.</p>
+<h3 id="2-use-stable-ids"><a class="header" href="#2-use-stable-ids">2. Use stable IDs</a></h3>
+<p>Stable identity improves focus, diffing, and backend updates.</p>
+<h3 id="3-use-structural-scene-wrappers-intentionally"><a class="header" href="#3-use-structural-scene-wrappers-intentionally">3. Use structural scene wrappers intentionally</a></h3>
+<p>Wrappers like border, padding, sized, viewport, scroll, and focus scope all influence later pipeline stages.</p>
+<h3 id="4-use-cursor_position-for-text-entry-controls"><a class="header" href="#4-use-cursor_position-for-text-entry-controls">4. Use <code>cursor_position(...)</code> for text-entry controls</a></h3>
+<p>Do not bury cursor logic in rendering assumptions.</p>
+<h3 id="5-test-through-intermediate-layers-when-useful"><a class="header" href="#5-test-through-intermediate-layers-when-useful">5. Test through intermediate layers when useful</a></h3>
+<p>You can test:</p>
+<ul>
+<li>scene shape</li>
+<li>layout nodes</li>
+<li>render ops</li>
+<li>patches</li>
+<li>backend commands</li>
+</ul>
+<p>This is one of Knopper’s strengths.</p>
+<h2 id="common-mistakes-to-avoid"><a class="header" href="#common-mistakes-to-avoid">Common mistakes to avoid</a></h2>
+<h3 id="1-thinking-a-scene-is-already-laid-out-terminal-output"><a class="header" href="#1-thinking-a-scene-is-already-laid-out-terminal-output">1. Thinking a scene is already laid out terminal output</a></h3>
+<p>A scene is semantic input to later stages, not final drawing.</p>
+<h3 id="2-using-unstable-ids"><a class="header" href="#2-using-unstable-ids">2. Using unstable IDs</a></h3>
+<p>This makes diffing and focus worse and will also hurt future collaboration overlays.</p>
+<h3 id="3-treating-backend-behavior-as-machine-behavior"><a class="header" href="#3-treating-backend-behavior-as-machine-behavior">3. Treating backend behavior as machine behavior</a></h3>
+<p>Backends execute rendering; machines project semantics.</p>
+<h3 id="4-ignoring-clipping-and-scroll-structure"><a class="header" href="#4-ignoring-clipping-and-scroll-structure">4. Ignoring clipping and scroll structure</a></h3>
+<p>Viewport and scroll matter at render lowering time, not just in visual intuition.</p>
+<h3 id="5-assuming-cursor-placement-belongs-in-the-backend"><a class="header" href="#5-assuming-cursor-placement-belongs-in-the-backend">5. Assuming cursor placement belongs in the backend</a></h3>
+<p>Cursor placement belongs at the machine/layout boundary.</p>
+<h2 id="recommended-code-references"><a class="header" href="#recommended-code-references">Recommended code references</a></h2>
+<p>Useful files to study with this guide:</p>
+<ul>
+<li><code>src/layout.rs</code></li>
+<li><code>src/render.rs</code></li>
+<li><code>src/diff.rs</code></li>
+<li><code>src/backend.rs</code></li>
+<li><code>src/runtime.rs</code></li>
+<li><code>docs/architecture/04-runtime-pipeline.md</code></li>
+<li><code>docs/architecture/05-rendering-model.md</code></li>
+</ul>
+<h2 id="bottom-line"><a class="header" href="#bottom-line">Bottom line</a></h2>
+<p>If you remember one sentence from this guide, remember this:</p>
+<blockquote>
+<p>in Knopper, machines project semantic scenes, layout resolves geometry, render lowering produces backend-neutral ops, diff computes change, and the backend executes the result.</p>
+</blockquote>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../guides/03-focus-and-modal-semantics.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../guides/05-walkthrough-demo-workspace.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../guides/03-focus-and-modal-semantics.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../guides/05-walkthrough-demo-workspace.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

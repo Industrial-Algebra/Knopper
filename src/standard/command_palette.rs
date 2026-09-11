@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{
     Color, Effect, FocusState, KeyEvent, LayoutNode, ListIds, Machine, NodeId, Padding, Scene,
     SceneBehavior, SizeConstraint, Style, child_has_focus, dispatch_if_focused, modal_key_msg,
@@ -5,7 +8,7 @@ use crate::{
     standard::{
         input::{InputContext, InputMachine, InputMsg, InputState},
         list::{ListContext, ListMachine, ListMsg, ListState},
-        modal::{ModalFocusConfig, ModalIds, ModalMsg},
+        modal::{ModalFocusConfig, ModalIds, ModalKeyAction, ModalMsg},
     },
     update_child,
 };
@@ -33,8 +36,28 @@ impl Default for CommandPaletteState {
 }
 
 impl IntoGeometric for CommandPaletteState {
+    /// Class B aggregate: `1` = filtered length, `e1` = open marker,
+    /// `e2/e3` = committed value/marker, `e12/e13` = digest of the child
+    /// [`InputState`] encoding,
+    /// `e23/e123` = digest of the child
+    /// [`ListState`] encoding.
     fn into_geometric(self) -> GA3 {
-        GA3::zero()
+        let input = self.input.into_geometric();
+        let list = self.list.into_geometric();
+        let (i0, i1) = crate::geometric::Digest::of_multivector(&input);
+        let (l0, l1) = crate::geometric::Digest::of_multivector(&list);
+        let mut c = [0.0; crate::geometric::BLADES];
+        c[crate::geometric::SCALAR] = self.filtered.len() as f64;
+        c[crate::geometric::E1] = f64::from(u8::from(self.open));
+        if let Some(committed) = self.committed {
+            c[crate::geometric::E2] = committed as f64;
+            c[crate::geometric::E3] = 1.0;
+        }
+        c[crate::geometric::E12] = i0;
+        c[crate::geometric::E13] = i1;
+        c[crate::geometric::E23] = l0;
+        c[crate::geometric::E123] = l1;
+        crate::geometric::from_coeffs(c)
     }
 }
 
@@ -190,13 +213,11 @@ impl CommandPaletteMachine {
         &self,
         ctx: &CommandPaletteContext,
         state: &CommandPaletteState,
-    ) -> ModalFocusConfig<CommandPaletteMsg> {
+    ) -> ModalFocusConfig {
         ModalFocusConfig {
             scope_root: Self::MODAL_IDS.root,
             focus_order: self.focus_order(ctx, state),
             primary_focus: self.input_root_id(ctx),
-            tab_forward: CommandPaletteMsg::FocusList,
-            tab_backward: CommandPaletteMsg::FocusInput,
         }
     }
 
@@ -248,16 +269,15 @@ impl CommandPaletteMachine {
             return None;
         }
 
-        if let Some(modal_msg) = modal_key_msg(
+        if let Some(action) = modal_key_msg(
             focus,
             state.open,
             event,
             &self.modal_focus_config(ctx, state),
         ) {
-            return Some(match modal_msg {
-                ModalMsg::Inner(msg) => msg,
-                ModalMsg::FocusPrimary => CommandPaletteMsg::FocusInput,
-                ModalMsg::Dismiss => CommandPaletteMsg::Dismiss,
+            return Some(match action {
+                ModalKeyAction::FocusPrimary => CommandPaletteMsg::FocusInput,
+                ModalKeyAction::Dismiss => CommandPaletteMsg::Dismiss,
             });
         }
 
@@ -588,7 +608,12 @@ mod tests {
     }
 
     #[test]
-    fn tab_cycles_focus_inside_modal_scope() {
+    fn tab_is_deferred_to_declarative_runtime_navigation() {
+        // After migration: Tab/Shift-Tab are NOT handled by key_msg.
+        // They return None so the runtime's declarative FocusNavigation
+        // moves focus within the FocusScopePolicy::Trap scope. The
+        // imperative path only handles Escape and the focus-refocus
+        // safety net.
         let machine = CommandPaletteMachine::new();
         let state = machine.init(&ctx());
 
@@ -610,7 +635,7 @@ mod tests {
                 },
                 &ctx(),
             ),
-            Some(CommandPaletteMsg::FocusList)
+            None
         );
 
         let mut list_focus = FocusState::new();
@@ -630,7 +655,7 @@ mod tests {
                 },
                 &ctx(),
             ),
-            Some(CommandPaletteMsg::FocusInput)
+            None
         );
     }
 

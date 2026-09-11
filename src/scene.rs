@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{annotation::Annotation, id::NodeId, style::Style};
 use cliffy_core::{FromGeometric, GA3, IntoGeometric};
 
@@ -26,6 +29,12 @@ pub struct NodeMeta {
     pub style: Style,
     pub annotations: Vec<Annotation>,
     pub focusable: bool,
+    /// When true the node is visible but non-interactive: it is skipped by
+    /// focus collection, cannot be activated, and should be rendered dimmed
+    /// by backends. Distinct from `focusable = false` (a node may be
+    /// focusable but currently disabled) and from being absent from the
+    /// scene entirely (hidden).
+    pub disabled: bool,
 }
 
 impl NodeMeta {
@@ -37,6 +46,7 @@ impl NodeMeta {
             style: Style::PLAIN,
             annotations: Vec::new(),
             focusable: false,
+            disabled: false,
         }
     }
 }
@@ -358,6 +368,14 @@ impl<Msg> Scene<Msg> {
         self
     }
 
+    /// Marks the node as disabled: visible but non-interactive. Disabled
+    /// nodes are skipped by focus collection and cannot be activated.
+    #[must_use]
+    pub fn disabled(mut self) -> Self {
+        self.meta_mut().disabled = true;
+        self
+    }
+
     #[must_use]
     pub fn on_activate(mut self, msg: Msg) -> Self {
         if let Self::Text(node) = &mut self {
@@ -492,9 +510,126 @@ impl<Msg> Scene<Msg> {
     }
 }
 
+impl<Msg> Scene<Msg> {
+    /// Pre-order structural fingerprint walk (encoding contract §5):
+    /// kind tag, node id, and per-kind payload bytes. Returns the number
+    /// of `Scene` values visited (every node, including `Empty`).
+    fn fingerprint_walk(scene: &Self, out: &mut Vec<u8>) -> u64 {
+        let mut count = 1;
+        match scene {
+            Scene::Empty => out.push(0),
+            Scene::Text(text) => {
+                out.push(1);
+                out.extend_from_slice(&text.meta.id.get().to_le_bytes());
+                out.extend_from_slice(&(text.content.len() as u64).to_le_bytes());
+                out.extend_from_slice(text.content.as_bytes());
+            }
+            Scene::Row { meta, children } => {
+                out.push(2);
+                out.extend_from_slice(&meta.id.get().to_le_bytes());
+                count += children
+                    .iter()
+                    .map(|c| Self::fingerprint_walk(c, out))
+                    .sum::<u64>();
+            }
+            Scene::Column { meta, children } => {
+                out.push(3);
+                out.extend_from_slice(&meta.id.get().to_le_bytes());
+                count += children
+                    .iter()
+                    .map(|c| Self::fingerprint_walk(c, out))
+                    .sum::<u64>();
+            }
+            Scene::Stack { meta, children } => {
+                out.push(4);
+                out.extend_from_slice(&meta.id.get().to_le_bytes());
+                count += children
+                    .iter()
+                    .map(|c| Self::fingerprint_walk(c, out))
+                    .sum::<u64>();
+            }
+            Scene::FocusScope {
+                meta, name, child, ..
+            } => {
+                out.push(5);
+                out.extend_from_slice(&meta.id.get().to_le_bytes());
+                out.extend_from_slice(&(name.len() as u64).to_le_bytes());
+                out.extend_from_slice(name.as_bytes());
+                count += Self::fingerprint_walk(child, out);
+            }
+            Scene::Align { meta, child, .. } => {
+                out.push(6);
+                out.extend_from_slice(&meta.id.get().to_le_bytes());
+                count += Self::fingerprint_walk(child, out);
+            }
+            Scene::Padding {
+                meta,
+                padding,
+                child,
+            } => {
+                out.push(7);
+                out.extend_from_slice(&meta.id.get().to_le_bytes());
+                out.extend_from_slice(&padding.top.to_le_bytes());
+                out.extend_from_slice(&padding.right.to_le_bytes());
+                out.extend_from_slice(&padding.bottom.to_le_bytes());
+                out.extend_from_slice(&padding.left.to_le_bytes());
+                count += Self::fingerprint_walk(child, out);
+            }
+            Scene::Sized { meta, child, .. } => {
+                out.push(8);
+                out.extend_from_slice(&meta.id.get().to_le_bytes());
+                count += Self::fingerprint_walk(child, out);
+            }
+            Scene::Viewport { meta, child } => {
+                out.push(9);
+                out.extend_from_slice(&meta.id.get().to_le_bytes());
+                count += Self::fingerprint_walk(child, out);
+            }
+            Scene::Scroll {
+                meta,
+                offset,
+                child,
+            } => {
+                out.push(10);
+                out.extend_from_slice(&meta.id.get().to_le_bytes());
+                out.extend_from_slice(&offset.x.to_le_bytes());
+                out.extend_from_slice(&offset.y.to_le_bytes());
+                count += Self::fingerprint_walk(child, out);
+            }
+            Scene::Border { meta, child } => {
+                out.push(11);
+                out.extend_from_slice(&meta.id.get().to_le_bytes());
+                count += Self::fingerprint_walk(child, out);
+            }
+            Scene::Annotated { meta, label, child } => {
+                out.push(12);
+                out.extend_from_slice(&meta.id.get().to_le_bytes());
+                out.extend_from_slice(&(label.len() as u64).to_le_bytes());
+                out.extend_from_slice(label.as_bytes());
+                count += Self::fingerprint_walk(child, out);
+            }
+        }
+        count
+    }
+}
+
 impl<Msg> IntoGeometric for Scene<Msg> {
+    /// Class B structural fingerprint: `1` = node count (every `Scene`
+    /// value in the tree, including `Empty`), `e1/e2` = digest of the
+    /// pre-order structural traversal (kind tag, node id, text content,
+    /// focus-scope name, annotated label, padding, scroll offset).
+    /// Styles, roles, annotations, interactions, policies, constraints
+    /// and anchors are excluded from v1 (documented in the encoding
+    /// contract §5); geometry changes are what the substrate gates on.
     fn into_geometric(self) -> GA3 {
-        GA3::zero()
+        let mut bytes = Vec::new();
+        let count = Self::fingerprint_walk(&self, &mut bytes);
+        let (f0, f1) = crate::geometric::Digest::of_bytes(&bytes);
+        let mut c = [0.0; crate::geometric::BLADES];
+        c[crate::geometric::SCALAR] = count as f64;
+        c[crate::geometric::E1] = f0;
+        c[crate::geometric::E2] = f1;
+        crate::geometric::from_coeffs(c)
     }
 }
 

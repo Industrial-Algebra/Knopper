@@ -2,32 +2,119 @@ name: CI
 
 on:
   push:
-    branches:
-      - '**'
+    branches: [develop, main]
   pull_request:
+    branches: [develop, main]
+    types: [opened, synchronize, reopened, labeled]
 
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+# Structure conforms to Industrial-Algebra/Borsalino CI.
+#
+# Deliberate deviations:
+# - Stable toolchain, not nightly: Knopper has no nightly-only tooling
+#   (Borsalino needs nightly for miri/kani). CONTRIBUTING.md specifies stable.
+# - No --all-features on GitHub-hosted jobs: the notcurses feature links
+#   against the system notcurses library, and ubuntu-latest images ship
+#   notcurses 3.0.7 while libnotcurses-sys 3.11.0 requires >= 3.0.11.
+#   Feature coverage runs on the self-hosted notcurses runner instead.
+#
+# Gate expression: the self-hosted notcurses job runs when the
+# 'run-notcurses' label is present OR when targeting main (release PR).
+# On push to main (post-merge), it also runs. On label events, only
+# gated jobs re-trigger.
 jobs:
-  rust:
-    name: fmt-clippy-test
+  fmt:
+    name: Format
     runs-on: ubuntu-latest
-
+    if: github.event.action != 'labeled'
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install stable toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          components: rustfmt, clippy
-
-      - name: Cache cargo
-        uses: Swatinem/rust-cache@v2
-
-      - name: cargo fmt --all --check
+          components: rustfmt
+      - name: Check formatting
         run: cargo fmt --all --check
 
-      - name: cargo clippy --all-targets --all-features -- -D warnings
-        run: cargo clippy --all-targets --all-features -- -D warnings
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    if: github.event.action != 'labeled'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Run clippy (default features)
+        run: cargo clippy --all-targets -- -D warnings
+      - name: cargo clippy --features demo -- -D warnings
+        run: cargo clippy --all-targets --features demo -- -D warnings
 
-      - name: cargo test --all-features
-        run: cargo test --all-features
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    if: github.event.action != 'labeled'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Run tests (default features)
+        run: cargo test
+      - name: cargo test --features demo
+        run: cargo test --features demo
+
+  doc:
+    name: Documentation
+    runs-on: ubuntu-latest
+    if: github.event.action != 'labeled'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build docs (default features)
+        run: cargo doc --no-deps
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+  book:
+    name: Book (mdbook)
+    runs-on: ubuntu-latest
+    if: github.event.action != 'labeled'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup mdBook
+        uses: peaceiris/actions-mdbook@v2
+        with:
+          mdbook-version: '0.5.2'
+      - name: Build book
+        run: mdbook build
+
+  # Notcurses feature verification on the self-hosted runner
+  # (knopper-notcurses-x64-01: ubuntu:26.04 container with system
+  # notcurses 3.0.17, satisfying libnotcurses-sys >= 3.0.11).
+  notcurses:
+    name: Notcurses (self-hosted)
+    runs-on: [self-hosted, notcurses]
+    if: |
+      github.event_name == 'push' && github.ref == 'refs/heads/main' ||
+      github.event_name == 'pull_request' && (
+        github.base_ref == 'main' ||
+        contains(github.event.pull_request.labels.*.name, 'run-notcurses')
+      )
+    steps:
+      - uses: actions/checkout@v4
+      - name: Report system notcurses
+        run: pkg-config --modversion notcurses
+      - name: cargo clippy --features notcurses -- -D warnings
+        run: cargo clippy --all-targets --features notcurses -- -D warnings
+      - name: cargo test --features notcurses
+        run: cargo test --features notcurses
+      - name: cargo test --features demo,notcurses
+        run: cargo test --features demo,notcurses
+      - name: cargo doc --features notcurses
+        run: cargo doc --no-deps --features notcurses
+        env:
+          RUSTDOCFLAGS: -D warnings

@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{
     Effect, FocusState, KeyEvent, Machine, Scene, SceneBehavior, Style, dispatch_if_focused,
     project_child,
@@ -14,8 +17,23 @@ pub struct ListDetailState {
 }
 
 impl IntoGeometric for ListDetailState {
+    /// Class B aggregate: the child [`ListState`] contributes its exact
+    /// pair (`1` = selected, `e1` = scroll) plus a digest word pair
+    /// (`e13/e23`) of its own encoding (composition, contract §3);
+    /// `e2` = committed value, `e12` = committed marker.
     fn into_geometric(self) -> GA3 {
-        GA3::zero()
+        let child = self.list.into_geometric();
+        let (d0, d1) = crate::geometric::Digest::of_multivector(&child);
+        let mut c = [0.0; crate::geometric::BLADES];
+        c[crate::geometric::SCALAR] = child.get(crate::geometric::SCALAR);
+        c[crate::geometric::E1] = child.get(crate::geometric::E1);
+        if let Some(committed) = self.committed {
+            c[crate::geometric::E2] = committed as f64;
+            c[crate::geometric::E12] = 1.0;
+        }
+        c[crate::geometric::E13] = d0;
+        c[crate::geometric::E23] = d1;
+        crate::geometric::from_coeffs(c)
     }
 }
 

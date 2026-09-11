@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Industrial Algebra
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{
     Color, Effect, Key, KeyEvent, Machine, NodeId, Scene, SceneBehavior, SizeConstraint, Style,
 };
@@ -9,14 +12,21 @@ pub struct ButtonState {
 }
 
 impl IntoGeometric for ButtonState {
+    /// Class A (exact): `1` = activation count. Exact while the counter
+    /// stays below 2^53 (contract §3 bound; u64 overflow is documented).
     fn into_geometric(self) -> GA3 {
-        GA3::zero()
+        let mut c = [0.0; crate::geometric::BLADES];
+        c[crate::geometric::SCALAR] = self.activations as f64;
+        crate::geometric::from_coeffs(c)
     }
 }
 
 impl FromGeometric for ButtonState {
-    fn from_geometric(_mv: &GA3) -> Self {
-        Self::default()
+    /// Class A inverse of [`IntoGeometric`](IntoGeometric-for-ButtonState).
+    fn from_geometric(mv: &GA3) -> Self {
+        Self {
+            activations: mv.get(crate::geometric::SCALAR) as u64,
+        }
     }
 }
 

@@ -1,0 +1,695 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Composing machines - Knopper</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A functional-reactive terminal UI framework and collaboration substrate">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="../favicon-8114d1fc.png">
+        <link rel="stylesheet" href="../css/variables-8adf115d.css">
+        <link rel="stylesheet" href="../css/general-2459343d.css">
+        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../fonts/fonts-9644e21d.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="mdbook-highlight-css" href="../highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="../tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="../ayu-highlight-3fdfc3ac.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex-feee7898.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc-2aafcc7f.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="mdbook-body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="mdbook-page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
+                        </label>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
+                        </button>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
+                        </ul>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Knopper</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/Industrial-Algebra/Knopper" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
+                        </a>
+                        <a href="https://github.com/Industrial-Algebra/Knopper/edit/develop/docs/docs/guides/02-composing-machines.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <span class=fa-svg id="git-edit-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M421.7 220.3l-11.3 11.3-22.6 22.6-205 205c-6.6 6.6-14.8 11.5-23.8 14.1L30.8 511c-8.4 2.5-17.5 .2-23.7-6.1S-1.5 489.7 1 481.2L38.7 353.1c2.6-9 7.5-17.2 14.1-23.8l205-205 22.6-22.6 11.3-11.3 33.9 33.9 62.1 62.1 33.9 33.9zM96 353.9l-9.3 9.3c-.9 .9-1.6 2.1-2 3.4l-25.3 86 86-25.3c1.3-.4 2.5-1.1 3.4-2l9.3-9.3H112c-8.8 0-16-7.2-16-16V353.9zM453.3 19.3l39.4 39.4c25 25 25 65.5 0 90.5l-14.5 14.5-22.6 22.6-11.3 11.3-33.9-33.9-62.1-62.1L314.3 67.7l11.3-11.3 22.6-22.6 14.5-14.5c25-25 65.5-25 90.5 0z"/></svg></span>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="mdbook-content" class="content">
+                    <main>
+                        <h1 id="composing-machines-in-knopper"><a class="header" href="#composing-machines-in-knopper">Composing Machines in Knopper</a></h1>
+<h2 id="purpose"><a class="header" href="#purpose">Purpose</a></h2>
+<p>This guide explains how to build larger Knopper interfaces by composing machines together.</p>
+<p>If <a href="01-writing-a-machine.html">writing a machine</a> explains the unit of abstraction, this guide explains how those units fit together.</p>
+<p>In practice, composition is one of Knopper’s biggest strengths:</p>
+<ul>
+<li>small controls remain real machines</li>
+<li>parent machines can own additional state and semantics</li>
+<li>child scenes and effects can be lifted structurally</li>
+<li>focus and modal behavior can remain explicit and reusable</li>
+</ul>
+<h2 id="the-mental-model"><a class="header" href="#the-mental-model">The mental model</a></h2>
+<p>A composed machine is still just a machine.</p>
+<p>There is no separate “container component” model.</p>
+<p>A parent machine typically does three things:</p>
+<ol>
+<li>stores child model state inside its own <code>Model</code></li>
+<li>lifts child messages into parent messages</li>
+<li>projects child scenes into a larger parent scene</li>
+</ol>
+<p>The important point is:</p>
+<blockquote>
+<p>composition in Knopper is ordinary machine authoring, not a separate subsystem.</p>
+</blockquote>
+<h2 id="core-helpers"><a class="header" href="#core-helpers">Core helpers</a></h2>
+<p>The main composition helpers live in <code>src/compose.rs</code>.</p>
+<p>They are:</p>
+<ul>
+<li><code>project_child(...)</code></li>
+<li><code>update_child(...)</code></li>
+<li><code>map_effect(...)</code></li>
+<li><code>child_has_focus(...)</code></li>
+<li><code>dispatch_if_focused(...)</code></li>
+<li><code>trap_focus(...)</code></li>
+<li><code>next_focus_in_order(...)</code></li>
+<li><code>previous_focus_in_order(...)</code></li>
+</ul>
+<p>Most composed machines use only a subset of these, but together they form the basic toolkit for nested machine authoring.</p>
+<h2 id="the-three-main-composition-problems"><a class="header" href="#the-three-main-composition-problems">The three main composition problems</a></h2>
+<p>When composing child machines, you usually need to solve three problems.</p>
+<h3 id="1-how-do-i-store-child-state"><a class="header" href="#1-how-do-i-store-child-state">1. How do I store child state?</a></h3>
+<p>Put child model state inside the parent model.</p>
+<p>Example:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct ParentState {
+    pub input: InputState,
+    pub list: ListState,
+    pub committed: Option&lt;usize&gt;,
+}
+<span class="boring">}</span></code></pre>
+<h3 id="2-how-do-i-lift-child-messages"><a class="header" href="#2-how-do-i-lift-child-messages">2. How do I lift child messages?</a></h3>
+<p>Wrap child messages in parent message variants.</p>
+<p>Example:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum ParentMsg {
+    Input(InputMsg),
+    List(ListMsg&lt;()&gt;),
+    Dismiss,
+}
+<span class="boring">}</span></code></pre>
+<h3 id="3-how-do-i-project-child-scenes-into-parent-space"><a class="header" href="#3-how-do-i-project-child-scenes-into-parent-space">3. How do I project child scenes into parent space?</a></h3>
+<p>Use <code>project_child(...)</code> and give it a message-lifting function.</p>
+<p>Example:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let input_scene = project_child(
+    &amp;self.input,
+    &amp;model.input,
+    &amp;(),
+    &amp;ctx.input,
+    &amp;ParentMsg::Input,
+);
+<span class="boring">}</span></code></pre>
+<h2 id="project_child"><a class="header" href="#project_child"><code>project_child(...)</code></a></h2>
+<p>This helper projects a child machine into a parent message space.</p>
+<p>Signature shape:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>project_child(machine, model, shared, ctx, lift)
+<span class="boring">}</span></code></pre>
+<p>What it does:</p>
+<ul>
+<li>calls the child machine’s projection</li>
+<li>maps child messages into parent messages</li>
+<li>returns a <code>Scene&lt;ParentMsg&gt;</code></li>
+</ul>
+<p>That means child machines remain fully reusable.</p>
+<h3 id="example"><a class="header" href="#example">Example</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let list_scene = project_child(
+    &amp;self.list,
+    &amp;model.list,
+    &amp;(),
+    &amp;ctx.list,
+    &amp;ParentMsg::List,
+);
+<span class="boring">}</span></code></pre>
+<h2 id="update_child"><a class="header" href="#update_child"><code>update_child(...)</code></a></h2>
+<p>This helper updates a child machine while lifting any child effects into parent effects.</p>
+<p>Signature shape:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>update_child(machine, model, msg, ctx, lift)
+<span class="boring">}</span></code></pre>
+<p>What it does:</p>
+<ul>
+<li>runs the child’s <code>update(...)</code></li>
+<li>rewrites emitted child messages into parent messages</li>
+<li>preserves non-message effects like <code>RequestFocus</code></li>
+</ul>
+<h3 id="example-1"><a class="header" href="#example-1">Example</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let effect = update_child(
+    &amp;self.list,
+    &amp;mut model.list,
+    list_msg,
+    &amp;ctx.list,
+    &amp;ParentMsg::List,
+);
+<span class="boring">}</span></code></pre>
+<p>This is usually the easiest correct way to update nested machines.</p>
+<h2 id="map_effect"><a class="header" href="#map_effect"><code>map_effect(...)</code></a></h2>
+<p><code>update_child(...)</code> is built on top of <code>map_effect(...)</code>.</p>
+<p>Use <code>map_effect(...)</code> directly when you already have a child <code>Effect&lt;ChildMsg&gt;</code> and want to rewrite it into an <code>Effect&lt;ParentMsg&gt;</code>.</p>
+<p>This is useful if the parent needs to do custom child-update logic before lifting effects.</p>
+<h2 id="the-standard-parent-message-pattern"><a class="header" href="#the-standard-parent-message-pattern">The standard parent-message pattern</a></h2>
+<p>A common pattern is:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum ParentMsg {
+    Child(ChildMsg),
+    ParentOnly,
+}
+<span class="boring">}</span></code></pre>
+<p>Then update logic becomes:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>match msg {
+    ParentMsg::Child(child_msg) =&gt; update_child(
+        &amp;self.child,
+        &amp;mut model.child,
+        child_msg,
+        &amp;ctx.child,
+        &amp;ParentMsg::Child,
+    ),
+    ParentMsg::ParentOnly =&gt; Effect::None,
+}
+<span class="boring">}</span></code></pre>
+<p>This pattern is simple, explicit, and scales well.</p>
+<h2 id="example-composition-in-listdetailmachine"><a class="header" href="#example-composition-in-listdetailmachine">Example: composition in <code>ListDetailMachine</code></a></h2>
+<p><code>src/standard/list_detail.rs</code> is a good minimal composition example.</p>
+<p>Its parent model stores:</p>
+<ul>
+<li>child <code>list: ListState</code></li>
+<li>parent-local <code>committed: Option&lt;usize&gt;</code></li>
+</ul>
+<p>Its messages are:</p>
+<ul>
+<li><code>List(ListMsg&lt;RowMsg&gt;)</code></li>
+<li><code>Key(KeyEvent)</code></li>
+</ul>
+<p>Its update path:</p>
+<ul>
+<li>optionally derives parent-local meaning from child messages</li>
+<li>delegates child state update with <code>update_child(...)</code></li>
+</ul>
+<p>This is an important composition pattern:</p>
+<blockquote>
+<p>parent machines can layer additional semantics on top of child machines without breaking child reuse.</p>
+</blockquote>
+<p>For example, <code>ListDetailMachine</code> treats list commit as “show detail for this item” while still using <code>ListMachine</code> as-is.</p>
+<h2 id="example-composition-in-commandpalettemachine"><a class="header" href="#example-composition-in-commandpalettemachine">Example: composition in <code>CommandPaletteMachine</code></a></h2>
+<p><code>src/standard/command_palette.rs</code> is a richer example.</p>
+<p>It composes:</p>
+<ul>
+<li><code>InputMachine</code></li>
+<li><code>ListMachine</code></li>
+<li>modal helper behavior</li>
+<li>local parent state such as filtering and committed selection mapping</li>
+</ul>
+<p>This shows that a parent machine can:</p>
+<ul>
+<li>own multiple children</li>
+<li>transform child context</li>
+<li>derive additional parent-local state</li>
+<li>manage focus between children</li>
+<li>wrap children in modal/focus-scoped scene structure</li>
+</ul>
+<p>This is very close to the intended Knopper style for real applications.</p>
+<h2 id="parent-local-state-vs-child-state"><a class="header" href="#parent-local-state-vs-child-state">Parent-local state vs child state</a></h2>
+<p>One of the most important design choices in composition is deciding what belongs where.</p>
+<h3 id="child-state-belongs-in-the-child-when"><a class="header" href="#child-state-belongs-in-the-child-when">Child state belongs in the child when:</a></h3>
+<ul>
+<li>it is intrinsic to the child control</li>
+<li>the child should remain reusable across many parents</li>
+<li>the state has a well-defined local meaning inside the child</li>
+</ul>
+<p>Examples:</p>
+<ul>
+<li>input cursor state inside <code>InputMachine</code></li>
+<li>list scroll/selected state inside <code>ListMachine</code></li>
+<li>tabs selected state inside <code>TabsMachine</code></li>
+</ul>
+<h3 id="parent-local-state-belongs-in-the-parent-when"><a class="header" href="#parent-local-state-belongs-in-the-parent-when">Parent-local state belongs in the parent when:</a></h3>
+<ul>
+<li>it depends on how the parent interprets child output</li>
+<li>it coordinates multiple children</li>
+<li>it derives higher-level app behavior</li>
+</ul>
+<p>Examples:</p>
+<ul>
+<li>command palette filtered indices</li>
+<li>command palette committed original-item mapping</li>
+<li>demo workspace derived status line</li>
+<li>list-detail committed selection meaning</li>
+</ul>
+<h2 id="composition-with-multiple-children"><a class="header" href="#composition-with-multiple-children">Composition with multiple children</a></h2>
+<p>A parent with multiple child machines often has a model like:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct ParentState {
+    pub input: InputState,
+    pub list: ListState,
+    pub button: ButtonState,
+    pub status: String,
+}
+<span class="boring">}</span></code></pre>
+<p>And messages like:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum ParentMsg {
+    Input(InputMsg),
+    List(ListMsg&lt;()&gt;),
+    Button(ButtonMsg),
+}
+<span class="boring">}</span></code></pre>
+<p>Then <code>project_once(...)</code> can build the full composed body from child projections.</p>
+<p>Example shape:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let input = project_child(...);
+let list = project_child(...);
+let button = project_child(...);
+
+Scene::column(root_id, vec![input, list, button])
+<span class="boring">}</span></code></pre>
+<h2 id="focus-aware-composition"><a class="header" href="#focus-aware-composition">Focus-aware composition</a></h2>
+<p>When multiple children exist, the parent often decides which child should receive keyboard input.</p>
+<p>Useful helpers:</p>
+<ul>
+<li><code>child_has_focus(...)</code></li>
+<li><code>dispatch_if_focused(...)</code></li>
+</ul>
+<h3 id="child_has_focus"><a class="header" href="#child_has_focus"><code>child_has_focus(...)</code></a></h3>
+<p>Checks whether current focus lies within a child subtree.</p>
+<p>Example:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if child_has_focus(focus, self.input_root_id(ctx)) {
+    // route key to input child
+}
+<span class="boring">}</span></code></pre>
+<h3 id="dispatch_if_focused"><a class="header" href="#dispatch_if_focused"><code>dispatch_if_focused(...)</code></a></h3>
+<p>Conditionally returns a child message only when that child currently has focus.</p>
+<p>Example:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>dispatch_if_focused(
+    focus,
+    self.list.root_id(),
+    self.list.key_msg(&amp;state.list, event).map(ParentMsg::List),
+)
+<span class="boring">}</span></code></pre>
+<p>This is especially helpful in composed controls that route raw keys differently depending on the focused child.</p>
+<h2 id="modal-and-scoped-composition"><a class="header" href="#modal-and-scoped-composition">Modal and scoped composition</a></h2>
+<p>Sometimes the parent needs to create a local interaction region for composed children.</p>
+<p>This is where focus scopes and modal helpers matter.</p>
+<p>For example, the command palette wraps its inner body with:</p>
+<ul>
+<li>a focus scope</li>
+<li>modal scene structure</li>
+<li>modal focus config</li>
+</ul>
+<p>That gives it:</p>
+<ul>
+<li>local traversal policy</li>
+<li>focus trapping semantics</li>
+<li>reusable modal behavior</li>
+</ul>
+<p>The important design lesson is:</p>
+<blockquote>
+<p>composition is not only about nesting scenes; it is also about defining interaction structure.</p>
+</blockquote>
+<h2 id="using-focus-scopes-in-composed-machines"><a class="header" href="#using-focus-scopes-in-composed-machines">Using focus scopes in composed machines</a></h2>
+<p>If your parent creates a meaningful local traversal region, wrap the relevant subtree:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>Scene::focus_scope_with_policy(
+    scope_id,
+    "my-scope",
+    knopper::FocusScopePolicy::Trap,
+    body,
+)
+<span class="boring">}</span></code></pre>
+<p>Choose policy based on semantics:</p>
+<ul>
+<li><code>Wrap</code></li>
+<li><code>Trap</code></li>
+<li><code>Local</code></li>
+<li><code>Passthrough</code></li>
+</ul>
+<p>A modal-like region often wants <code>Trap</code>.
+A larger app section may want <code>Passthrough</code>.</p>
+<h2 id="context-transformation"><a class="header" href="#context-transformation">Context transformation</a></h2>
+<p>A parent can pass transformed context to a child.</p>
+<p>This is very common in composition.</p>
+<p>Examples:</p>
+<ul>
+<li>filtered list items passed into a list child</li>
+<li>child width/height adjusted by parent layout policy</li>
+<li>parent-generated node IDs passed to a child context</li>
+</ul>
+<p>The command palette does this by creating a filtered list context before projecting or updating the list child.</p>
+<p>This is a key part of Knopper composition:</p>
+<blockquote>
+<p>parent machines can adapt child context without changing child implementation.</p>
+</blockquote>
+<h2 id="a-typical-composition-flow"><a class="header" href="#a-typical-composition-flow">A typical composition flow</a></h2>
+<p>Most composed machines follow this rough pattern.</p>
+<h3 id="step-1-define-child-machines-in-the-parent-struct"><a class="header" href="#step-1-define-child-machines-in-the-parent-struct">Step 1: define child machines in the parent struct</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct ParentMachine {
+    input: InputMachine,
+    list: ListMachine&lt;...&gt;,
+}
+<span class="boring">}</span></code></pre>
+<h3 id="step-2-store-child-state-in-the-parent-model"><a class="header" href="#step-2-store-child-state-in-the-parent-model">Step 2: store child state in the parent model</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct ParentState {
+    pub input: InputState,
+    pub list: ListState,
+}
+<span class="boring">}</span></code></pre>
+<h3 id="step-3-wrap-child-messages-in-parent-messages"><a class="header" href="#step-3-wrap-child-messages-in-parent-messages">Step 3: wrap child messages in parent messages</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub enum ParentMsg {
+    Input(InputMsg),
+    List(ListMsg&lt;()&gt;),
+}
+<span class="boring">}</span></code></pre>
+<h3 id="step-4-delegate-updates-with-update_child"><a class="header" href="#step-4-delegate-updates-with-update_child">Step 4: delegate updates with <code>update_child(...)</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>match msg {
+    ParentMsg::Input(msg) =&gt; update_child(...),
+    ParentMsg::List(msg) =&gt; update_child(...),
+}
+<span class="boring">}</span></code></pre>
+<h3 id="step-5-project-children-with-project_child"><a class="header" href="#step-5-project-children-with-project_child">Step 5: project children with <code>project_child(...)</code></a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let input = project_child(...);
+let list = project_child(...);
+<span class="boring">}</span></code></pre>
+<h3 id="step-6-assemble-parent-scene"><a class="header" href="#step-6-assemble-parent-scene">Step 6: assemble parent scene</a></h3>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>Scene::column(root_id, vec![input, list, status])
+<span class="boring">}</span></code></pre>
+<h2 id="deriving-parent-state-from-child-messages"><a class="header" href="#deriving-parent-state-from-child-messages">Deriving parent state from child messages</a></h2>
+<p>Parents often want to do more than blindly forward child updates.</p>
+<p>For example, before or after calling <code>update_child(...)</code>, the parent can inspect the child message and derive some parent-local consequence.</p>
+<p>Example shape:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>match msg {
+    ParentMsg::List(list_msg) =&gt; {
+        if let ListMsg::Commit(index) = list_msg.clone() {
+            model.committed = Some(index);
+        }
+
+        update_child(...)
+    }
+    _ =&gt; ...
+}
+<span class="boring">}</span></code></pre>
+<p>This pattern is important because it preserves child reuse while letting the parent express higher-level semantics.</p>
+<h2 id="derived-status-and-aggregation"><a class="header" href="#derived-status-and-aggregation">Derived status and aggregation</a></h2>
+<p>The demo machine in <code>src/demo.rs</code> is a good example of aggregation.</p>
+<p>It composes several child machines and also derives a workspace status string from them.</p>
+<p>That shows another common composition role for parents:</p>
+<ul>
+<li>collect child states</li>
+<li>compute a summary or coordination state</li>
+<li>render parent-level status or overview surfaces</li>
+</ul>
+<h2 id="collaboration-aware-composition"><a class="header" href="#collaboration-aware-composition">Collaboration-aware composition</a></h2>
+<p>Composition should remain compatible with Knopper’s collaboration model.</p>
+<p>When composing machines, ask:</p>
+<ol>
+<li>which child state is purely local?</li>
+<li>which parent state might later belong in <code>Shared</code>?</li>
+<li>is the parent coordinating local interaction, or semantic shared state, or both?</li>
+<li>are child IDs stable enough for future overlays?</li>
+</ol>
+<p>Examples:</p>
+<ul>
+<li>a command palette’s local focus is participant-local</li>
+<li>a filtered list inside it is local derived state</li>
+<li>a committed command may later lift into shared workspace semantics</li>
+</ul>
+<h2 id="testing-composed-machines"><a class="header" href="#testing-composed-machines">Testing composed machines</a></h2>
+<p>Useful tests for composition include:</p>
+<h3 id="message-lifting-tests"><a class="header" href="#message-lifting-tests">Message lifting tests</a></h3>
+<p>Verify that child messages become the correct parent messages.</p>
+<h3 id="child-state-update-tests"><a class="header" href="#child-state-update-tests">Child state update tests</a></h3>
+<p>Verify that child model state updates through the parent correctly.</p>
+<h3 id="parent-derived-state-tests"><a class="header" href="#parent-derived-state-tests">Parent-derived state tests</a></h3>
+<p>Verify that the parent computes status, filtered mappings, or selection semantics correctly.</p>
+<h3 id="projection-tests"><a class="header" href="#projection-tests">Projection tests</a></h3>
+<p>Verify that the final scene contains the expected composed sections.</p>
+<h3 id="focus-tests"><a class="header" href="#focus-tests">Focus tests</a></h3>
+<p>Verify that focus is routed to the intended child or trapped in the intended scope.</p>
+<p>The existing command palette and demo tests are good models here.</p>
+<h2 id="common-mistakes-to-avoid"><a class="header" href="#common-mistakes-to-avoid">Common mistakes to avoid</a></h2>
+<h3 id="1-manually-rewriting-child-scenes-everywhere"><a class="header" href="#1-manually-rewriting-child-scenes-everywhere">1. Manually rewriting child scenes everywhere</a></h3>
+<p>If you are hand-mapping messages repeatedly, <code>project_child(...)</code> is probably the better tool.</p>
+<h3 id="2-manually-rewriting-child-effects-everywhere"><a class="header" href="#2-manually-rewriting-child-effects-everywhere">2. Manually rewriting child effects everywhere</a></h3>
+<p>If you are hand-translating <code>Effect&lt;ChildMsg&gt;</code>, prefer <code>update_child(...)</code> or <code>map_effect(...)</code>.</p>
+<h3 id="3-putting-parent-semantics-into-the-child-unnecessarily"><a class="header" href="#3-putting-parent-semantics-into-the-child-unnecessarily">3. Putting parent semantics into the child unnecessarily</a></h3>
+<p>Keep child machines reusable. Put parent-specific meaning in the parent.</p>
+<h3 id="4-ignoring-focus-structure"><a class="header" href="#4-ignoring-focus-structure">4. Ignoring focus structure</a></h3>
+<p>As soon as a composed machine has multiple interactive children, focus routing becomes part of the design, not an afterthought.</p>
+<h3 id="5-using-unstable-child-ids"><a class="header" href="#5-using-unstable-child-ids">5. Using unstable child IDs</a></h3>
+<p>Composition depends on stable subtrees and stable anchors, especially for future collaboration overlays.</p>
+<h2 id="recommended-code-references"><a class="header" href="#recommended-code-references">Recommended code references</a></h2>
+<p>Good places to study next:</p>
+<ul>
+<li><code>src/compose.rs</code></li>
+<li><code>src/standard/list_detail.rs</code></li>
+<li><code>src/standard/command_palette.rs</code></li>
+<li><code>src/demo.rs</code></li>
+</ul>
+<h2 id="bottom-line"><a class="header" href="#bottom-line">Bottom line</a></h2>
+<p>If you remember one sentence from this guide, make it this:</p>
+<blockquote>
+<p>in Knopper, composing machines means storing child state in the parent, lifting child messages/effects into parent space, and assembling child scenes into a larger semantic scene.</p>
+</blockquote>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../guides/01-writing-a-machine.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                            </a>
+
+                            <a rel="next prefetch" href="../guides/03-focus-and-modal-semantics.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../guides/01-writing-a-machine.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M41.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.3 256 246.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></span>
+                    </a>
+
+                    <a rel="next prefetch" href="../guides/03-focus-and-modal-semantics.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M278.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-160 160c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L210.7 256 73.4 118.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l160 160z"/></svg></span>
+                    </a>
+            </nav>
+
+        </div>
+
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr-ef4e11c1.min.js"></script>
+        <script src="../mark-09e88c2c.min.js"></script>
+        <script src="../searcher-c2a407aa.js"></script>
+
+        <script src="../clipboard-1626706a.min.js"></script>
+        <script src="../highlight-abc7f01d.js"></script>
+        <script src="../book-a0b12cfe.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>
