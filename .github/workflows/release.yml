@@ -57,3 +57,15 @@ jobs:
           body_path: ${{ steps.changelog.outputs.notes_path }}
           draft: false
           prerelease: false
+
+  announce:
+    name: Announce on industrialalgebra.com
+    runs-on: ubuntu-latest
+    needs: github-release
+    uses: Industrial-Algebra/IA-home/.github/workflows/release-announce.yml@main
+    with:
+      product_name: "Knopper"
+      version: ${{ github.ref_name }}
+      release_notes: ${{ github.event.release.body }}
+    secrets:
+      ADMIN_API_KEY: ${{ secrets.IA_BLOG_API_KEY }}
